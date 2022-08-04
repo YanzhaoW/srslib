@@ -1,7 +1,7 @@
 TEST_SRC := $(wildcard tests/*.c)
 TEST_OBJ := $(patsubst tests/%.c,$(BUILD_DIR)/tests/%.o,$(TEST_SRC))
 
-MY_LIBS := $(BUILD_DIR)/lib$(STEM)_extra.a $(BUILD_DIR)/lib$(STEM).a
+MY_LIBS := $(BUILD_DIR)/lib$(STEM).a
 
 $(BUILD_DIR)/bin/tests: $(TEST_OBJ) $(MY_LIBS) | tests/rules.mk
 	@echo " LD " $@

@@ -31,7 +31,7 @@ CFLAGS+=-D_X_PROGRAM_NAME=\"$(STEM)\"
 CFLAGS+=-D_X_COMPILE_DATE=\"$(shell date "+%Y%m%d")\"
 ifeq (yes,$(HAS_GIT))
 CFLAGS+=-D_X_GIT_COMMIT=\"$(shell git describe --tags --abbrev=8 --long HEAD)\"
-CFLAGS+=-D_X_VERSION=\"$(shell git describe)\"
+CFLAGS+=-D_X_VERSION=\"$(shell git describe 2> /dev/null)\"
 CFLAGS+=-D_X_GIT_COMMIT_DATE=\"$(shell git log -1 --format=%cd --date=format:"%Y%m%d")\"
 else
 CFLAGS+=-D_X_GIT_COMMIT=\"nogit\"
@@ -44,7 +44,7 @@ endif
 # LDFLAGS:=-Wl,-flto
 
 # use ccache, if available
-ifneq (,$(shell which ccache))
+ifneq (,$(shell which ccache 2> /dev/null))
   CC_PREFIX ?= ccache
 endif
 
@@ -59,7 +59,7 @@ define include_app =
 endef
 include apps/make.mk
 
-$(foreach app,$(APPS),$(eval $(call include_app,$(dir))))
+$(foreach dir,$(APPS),$(eval $(call include_app,$(dir))))
 
 include $(DEPS)
 
