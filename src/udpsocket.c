@@ -144,6 +144,36 @@ udp_sendbuf_push32(struct UdpSocket *self, uint32_t val)
 	}
 }
 
+void udp_sendbuf_push_array8(struct UdpSocket *self, uint8_t *array,
+    size_t bytes)
+{
+	if (self->sendlen + bytes < SENDBUF_SIZE) {
+		memcpy(&self->sendbuf[self->sendlen], array, bytes);
+		self->sendlen += bytes;
+	} else {
+		printf("udp_sendbuf_push_array8: send buffer full.\n");
+		abort();
+	}
+}
+
+void udp_sendbuf_push_array16(struct UdpSocket *self, uint16_t *array,
+    size_t words)
+{
+	size_t i;
+	for (i = 0; i < words; ++i) {
+		udp_sendbuf_push16(self, array[i]);
+	}
+}
+
+void udp_sendbuf_push_array32(struct UdpSocket *self, uint32_t *array,
+    size_t words)
+{
+	size_t i;
+	for (i = 0; i < words; ++i) {
+		udp_sendbuf_push32(self, array[i]);
+	}
+}
+
 /* TODO: Cleanup with udp_socket_send */
 ssize_t
 udp_socket_send_to_port(struct UdpSocket *self, int port)
@@ -159,7 +189,8 @@ udp_socket_send_to_port(struct UdpSocket *self, int port)
 	remote.sin_port = htons((in_port_t)port);
 	remote.sin_addr.s_addr = inet_addr(self->config.ip_address);
 
-	print_hex(self->sendbuf, self->sendlen, "udp_socket_send_to_port");
+	print_hex(self->sendbuf, self->sendlen, "udp_socket_send_to_port",
+	    ">>>");
 
 	rc = sendto(self->socket, self->sendbuf, self->sendlen, 0,
 	    (struct sockaddr *)&remote,
@@ -183,7 +214,7 @@ udp_socket_send(struct UdpSocket *self)
 		return 0;
 	}
 
-	print_hex(self->sendbuf, self->sendlen, "udp_socket_send");
+	print_hex(self->sendbuf, self->sendlen, "udp_socket_send", ">>>");
 
 	rc = sendto(self->socket, self->sendbuf, self->sendlen, 0,
 	    (struct sockaddr *)&self->config.remote,
@@ -299,7 +330,7 @@ try_again:
 	self->receivedlen = rc;
 
 	print_hex(self->recvbuf, (size_t)self->receivedlen,
-	    "udp_socket_receive");
+	    "udp_socket_receive", "<<<");
 
 	if ((size_t)self->receivedlen != self->recvlen) {
 		printf("read length mismatch (expect %lu, got %lu)\n",

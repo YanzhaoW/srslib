@@ -44,3 +44,6 @@ void udp_sendbuf_reset(struct UdpSocket *);
 void udp_sendbuf_push8(struct UdpSocket *, uint8_t);
 void udp_sendbuf_push16(struct UdpSocket *, uint16_t);
 void udp_sendbuf_push32(struct UdpSocket *, uint32_t);
+void udp_sendbuf_push_array8(struct UdpSocket *, uint8_t *, size_t);
+void udp_sendbuf_push_array16(struct UdpSocket *, uint16_t *, size_t);
+void udp_sendbuf_push_array32(struct UdpSocket *, uint32_t *, size_t);
