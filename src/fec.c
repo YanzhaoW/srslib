@@ -5,6 +5,9 @@
 #include <fec.h>
 #include <util.h>
 
+static const uint8_t hybrid_index_map_normal[] = {0, 1, 2, 3, 4, 5, 6, 7};
+static const uint8_t hybrid_index_map_swapped[] = {3, 2, 1, 0, 7, 6, 5, 4};
+
 struct Fec *
 fec_new()
 {
@@ -15,6 +18,7 @@ fec_new()
 	fec->packet_counter = 0;
 	fec->hybrid_map = 0;
 	fec->hybrid_index = 0;
+	fec->state = FEC_STATE_FRESH;
 
 	fec_default_config(fec);
 
@@ -29,6 +33,17 @@ fec_destroy(struct Fec *self)
 }
 
 void
+fec_configure(struct Fec *self)
+{
+	if (self->config.clock_source <= 1) {
+		self->hybrid_index_map = hybrid_index_map_normal;
+	} else {
+		self->hybrid_index_map = hybrid_index_map_swapped;
+	}
+	self->state = FEC_STATE_CONFIGURED;
+}
+
+void
 fec_default_config(struct Fec *self)
 {
 	self->config.debug_data_format = 0;
@@ -39,11 +54,17 @@ fec_default_config(struct Fec *self)
 	self->config.tp_offset = 1000;
 	self->config.tp_latency = 65;
 	self->config.tp_number = 1;
+	self->config.clock_source = 2;
 }
 
 int
 fec_open(struct Fec *self, char *ip_addr, int port)
 {
+	if (self->state < FEC_STATE_CONFIGURED) {
+		printf("need to call fec_configure() before opening a "
+		    "connection.\n");
+		abort();
+	}
 	printf("Opening connection to FEC at addr '%s', port %d\n", ip_addr,
 	    port);
 	udp_socket_config(self->socket, ip_addr, port);
@@ -190,7 +211,7 @@ fec_prepare_i2c_read_adc(struct Fec *self)
 	size_t len = 3;
 	uint8_t adc_channel = 0; /* TODO: Make configurable */
 	uint8_t i2c_address = 0x48 + (self->hybrid_index % 2);
-	uint8_t hybrid_bit = self->hybrid_index;
+	uint8_t hybrid_bit = self->hybrid_index_map[self->hybrid_index];
 	uint8_t hybrid_map = (1 << hybrid_bit);
 	uint16_t address;
 
@@ -250,13 +271,19 @@ fec_prepare_i2c_read8(struct Fec *self)
 	fec_prepare_i2c_rw(self, I2C_READ);
 }
 
+void
+fec_prepare_i2c_read32(struct Fec *self)
+{
+	fec_prepare_i2c_rw(self, I2C_READ);
+}
+
 
 void
 fec_prepare_i2c_rw(struct Fec *self, uint8_t rw)
 {
 	size_t len = 3;
 	uint8_t i2c_address;
-	uint8_t hybrid_bit = self->hybrid_index;
+	uint8_t hybrid_bit = self->hybrid_index_map[self->hybrid_index];
 	uint8_t hybrid_map = (1 << hybrid_bit);
 	uint16_t address;
 	uint32_t *array;
@@ -282,6 +309,7 @@ FEC_WRITE(set_mask, FEC_DEFAULT_VMMAPP_PORT)
 FEC_I2C_SEQ(read_adc, FEC_DEFAULT_I2C_PORT)
 FEC_I2C(write, FEC_DEFAULT_I2C_PORT)
 FEC_I2C(read8, FEC_DEFAULT_I2C_PORT)
+FEC_I2C(read32, FEC_DEFAULT_I2C_PORT)
 
 int
 fec_rw(struct Fec *self, int port,
@@ -403,6 +431,17 @@ fec_decode_i2c_read8(struct Fec *self)
 }
 
 void
+fec_decode_i2c_read32(struct Fec *self)
+{
+	uint32_t value;
+	assert(self->socket->receivedlen == 24);
+        value = ntohl(((uint32_t *)self->socket->recvbuf)[5]);
+	printf("register value (32-bit): %u (0x%08x)\n", value, value);
+	self->i2c.result = value;
+}
+
+
+void
 fec_decode_i2c_read_adc(struct Fec *self)
 {
 	assert(self->socket->receivedlen == 24);
@@ -437,4 +476,24 @@ fec_do_read_hybrid_firmware(struct Fec *self)
 		data = data << 8 | fec_i2c_read8(self, 65, 0, 1);
 	}
 	return data;
+}
+
+uint32_t
+fec_do_read_geo_pos(struct Fec *self)
+{
+	fec_i2c_write(self, 66, 2, 1);
+	return fec_i2c_read8(self, 66, 0, 1);
+}
+
+void
+fec_do_read_id_chip(struct Fec *self, uint32_t *id /* fixed len 4 */)
+{
+	uint8_t n;
+	for (n = 1; n <= 4; ++n) {
+		uint32_t data;
+		fec_i2c_write(self, 88, 0x80, 0);
+		data = fec_i2c_read32(self, 88, 0, n * 4);
+		printf("data = %08x\n", data);
+		id[n - 1] = data;
+	}
 }

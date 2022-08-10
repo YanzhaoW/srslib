@@ -26,6 +26,7 @@
 
 struct FecConfig
 {
+	uint8_t clock_source;
 	uint32_t debug_data_format;
 	uint32_t latency_reset;
 	uint32_t latency_data_max;
@@ -36,6 +37,13 @@ struct FecConfig
 	uint32_t tp_number;
 };
 
+enum FecState
+{
+	FEC_STATE_INVALID,
+	FEC_STATE_FRESH,
+	FEC_STATE_CONFIGURED
+};
+
 struct Fec
 {
 	struct UdpSocket *socket;
@@ -43,6 +51,8 @@ struct Fec
 	uint32_t packet_counter;
 	uint8_t hybrid_map;
 	uint8_t hybrid_index;
+	const uint8_t *hybrid_index_map;
+	enum FecState state;
 	struct I2C
 	{
 		int sequence;
@@ -57,13 +67,14 @@ typedef void(*send_buffer_function)(struct Fec *);
 typedef void(*recv_buffer_function)(struct Fec *);
 
 struct Fec *fec_new(void);
-void fec_destroy(struct Fec *);
-int fec_open(struct Fec *, char *, int);
-void fec_close(struct Fec *);
-void fec_default_config(struct Fec *);
-int fec_rw(struct Fec *, int, send_buffer_function, recv_buffer_function);
-void fec_prepare_i2c_rw(struct Fec *, uint8_t);
-void fec_prepare_send_buffer(struct Fec *, uint8_t, uint8_t, uint16_t);
+void	fec_destroy(struct Fec *);
+int	fec_open(struct Fec *, char *, int);
+void	fec_close(struct Fec *);
+void	fec_configure(struct Fec *);
+void	fec_default_config(struct Fec *);
+int	fec_rw(struct Fec *, int, send_buffer_function, recv_buffer_function);
+void	fec_prepare_i2c_rw(struct Fec *, uint8_t);
+void	fec_prepare_send_buffer(struct Fec *, uint8_t, uint8_t, uint16_t);
 
 #define FEC_READ_FUNCTION_DECL(name) \
     int fec_read_##name(struct Fec *); \
@@ -145,6 +156,7 @@ FEC_WRITE_FUNCTION_DECL(set_mask);
 FEC_I2C_SEQ_FUNCTION_DECL(read_adc);
 FEC_I2C_FUNCTION_DECL(write);
 FEC_I2C_FUNCTION_DECL(read8);
+FEC_I2C_FUNCTION_DECL(read32);
 
 /* TODO: */
 FEC_WRITE_FUNCTION_DECL(fec_ip); /* writeFECip */
@@ -152,3 +164,5 @@ FEC_WRITE_FUNCTION_DECL(daq_ip); /* writeDAQip */
 
 void fec_do_powercycle_hybrids(struct Fec *);
 uint32_t fec_do_read_hybrid_firmware(struct Fec *);
+uint32_t fec_do_read_geo_pos(struct Fec *);
+void fec_do_read_id_chip(struct Fec *, uint32_t *);

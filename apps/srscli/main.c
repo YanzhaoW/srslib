@@ -10,6 +10,7 @@ main(int argc, char *argv[])
 	printf("srscli\n");
 
 	fec = fec_new();
+	fec_configure(fec);
 	fec_open(fec, FEC_DEFAULT_IP, FEC_DEFAULT_FEC_PORT);
 
 	fec_write_reset(fec);
@@ -34,7 +35,19 @@ main(int argc, char *argv[])
 	{
 		uint32_t fw;
 		fw = fec_do_read_hybrid_firmware(fec);
-		printf("hybrid firmware = 0x%08x\n", fw);
+		printf("hybrid firmware = 0x%08x\n\n", fw);
+	}
+	{
+		uint32_t pos;
+		pos = fec_do_read_geo_pos(fec);
+		printf("hybrid geo pos = 0x%08x\n\n", pos);
+	}
+	{
+		uint32_t id[4];
+		fec->hybrid_index = 4;
+		fec_do_read_id_chip(fec, id);
+		printf("hybrid id = 0x%08x:%08x:%08x:%08x\n\n",
+		    id[0], id[1], id[2], id[3]);
 	}
 
 	/*
