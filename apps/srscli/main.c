@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <fec.h>
+#include <udp_socket.h>
 
 int
 main(int argc, char *argv[])
@@ -28,27 +29,31 @@ main(int argc, char *argv[])
 
 	fec_write_set_mask(fec);
 
-	fec_i2c_read_adc(fec, 0);
-	fec_i2c_read_adc(fec, 1);
-	fec_i2c_read_adc(fec, 2);
-
 	{
 		uint32_t fw;
 		fw = fec_do_read_hybrid_firmware(fec);
-		printf("hybrid firmware = 0x%08x\n\n", fw);
+		printf("hybrid firmware = 0x%08x\n", fw);
 	}
 	{
 		uint32_t pos;
 		pos = fec_do_read_geo_pos(fec);
-		printf("hybrid geo pos = 0x%08x\n\n", pos);
+		printf("hybrid geo pos = 0x%08x\n", pos);
 	}
 	{
 		uint32_t id[4];
-		fec->hybrid_index = 4;
+		fec->hybrid_index = 0;
 		fec_do_read_id_chip(fec, id);
-		printf("hybrid id = 0x%08x:%08x:%08x:%08x\n\n",
+		printf("hybrid id = 0x%08x:%08x:%08x:%08x\n",
 		    id[0], id[1], id[2], id[3]);
 	}
+
+	/*
+	 * fec->config.debug = 1;
+	 * fec->socket->config.debug = 1;
+	 */
+	fec_write_configure_hybrid(fec);
+
+	fec_do_read_adc(fec, 2);
 
 	/*
 	 * does not work with all FEC firmwares.

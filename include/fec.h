@@ -2,17 +2,24 @@
 
 #include <stdint.h>
 
-#define FEC_DEFAULT_FEC_PORT 6007
-#define FEC_DEFAULT_VMMAPP_PORT 6600
-#define FEC_DEFAULT_DVMI2C_PORT 6601
-#define FEC_DEFAULT_I2C_PORT 6604
+#define FEC_DEFAULT_FEC_PORT		6007
+#define FEC_DEFAULT_FEC_SYS_PORT	6023
+#define FEC_DEFAULT_VMMAPP_PORT		6600
+#define FEC_DEFAULT_DVMI2C_PORT		6601
+#define FEC_DEFAULT_S6_PORT		6602
+#define FEC_DEFAULT_VMMASIC_PORT	6603
+#define FEC_DEFAULT_I2C_PORT		6604
+#define FEC_DEFAULT_DAQ_PORT		6606
+
 #define FEC_DEFAULT_IP "10.0.0.2"
 
-#define FEC_CMD_WRITE 0xaa
-#define FEC_CMD_READ 0xbb
-#define FEC_CMD_TYPE_LIST 0xaa
-#define FEC_CMD_TYPE_PAIRS 0xaa
-#define FEC_CMD_LENGTH 0xffff
+#define FEC_CMD_WRITE		0xaa
+#define FEC_CMD_READ		0xbb
+#define FEC_CMD_TYPE_LIST	0xaa
+#define FEC_CMD_TYPE_PAIRS	0xaa
+#define FEC_CMD_LENGTH		0xffff
+
+#define FEC_ADC_CH_TEMPERATURE 2
 
 #define HYBRID_ADC_TDO 0
 #define HYBRID_ADC_PDO 1
@@ -35,6 +42,13 @@ struct FecConfig
 	uint32_t tp_offset;
 	uint32_t tp_latency;
 	uint32_t tp_number;
+	uint32_t tp_skew;
+	uint32_t tp_width;
+	uint32_t tp_polarity;
+	uint32_t ckbc_skew;
+	uint32_t ckbc;
+	uint32_t ckdt;
+	int debug;
 };
 
 enum FecState
@@ -51,6 +65,7 @@ struct Fec
 	uint32_t packet_counter;
 	uint8_t hybrid_map;
 	uint8_t hybrid_index;
+	uint8_t adc_channel;
 	const uint8_t *hybrid_index_map;
 	enum FecState state;
 	struct I2C
@@ -99,14 +114,14 @@ void	fec_prepare_send_buffer(struct Fec *, uint8_t, uint8_t, uint16_t);
 #define FEC_READ(name, port) \
     int fec_read_##name(struct Fec *self) \
     { \
-	printf("fec_read_" #name "\n"); \
+	if (self->config.debug == 1) {printf("fec_read_" #name "\n");} \
         return fec_rw(self, port, &fec_prepare_##name, &fec_decode_##name); \
     }
 
 #define FEC_WRITE(name, port) \
     int fec_write_##name(struct Fec *self) \
     { \
-	printf("fec_write_" #name "\n"); \
+	if (self->config.debug == 1) {printf("fec_write_" #name "\n");} \
         return fec_rw(self, port, &fec_prepare_##name, &fec_decode_##name); \
     }
 
@@ -118,8 +133,11 @@ void	fec_prepare_send_buffer(struct Fec *, uint8_t, uint8_t, uint16_t);
 	self->i2c.address = i2c_address; \
 	self->i2c.reg = reg_value; \
 	self->i2c.data = data; \
-	printf("fec_i2c_" #name "[hybrid=%d,addr=0x%x,reg=0x%x,data=0x%x]\n", \
-	    self->hybrid_index, i2c_address, reg_value, data); \
+	if (self->config.debug == 1) { \
+		printf("fec_i2c_" #name \
+		    "[hybrid=%d,addr=0x%x,reg=0x%x,data=0x%x]\n", \
+		    self->hybrid_index, i2c_address, reg_value, data); \
+	} \
         rc = fec_rw(self, port, &fec_prepare_i2c_##name, \
 	    &fec_decode_i2c_##name); \
 	assert(rc == 0); \
@@ -130,7 +148,9 @@ void	fec_prepare_send_buffer(struct Fec *, uint8_t, uint8_t, uint16_t);
     int fec_i2c_##name(struct Fec *self, int sequence) \
     { \
 	self->i2c.sequence = sequence; \
-	printf("fec_i2c_" #name "[sequence=%d]\n", sequence); \
+	if (self->config.debug == 1) { \
+		printf("fec_i2c_" #name "[sequence=%d]\n", sequence); \
+	} \
         return fec_rw(self, port, &fec_prepare_i2c_##name, \
 	    &fec_decode_i2c_##name); \
     }
@@ -153,6 +173,7 @@ FEC_WRITE_FUNCTION_DECL(reset);
 FEC_WRITE_FUNCTION_DECL(acq_on);
 FEC_WRITE_FUNCTION_DECL(acq_off);
 FEC_WRITE_FUNCTION_DECL(set_mask);
+FEC_WRITE_FUNCTION_DECL(configure_hybrid);
 FEC_I2C_SEQ_FUNCTION_DECL(read_adc);
 FEC_I2C_FUNCTION_DECL(write);
 FEC_I2C_FUNCTION_DECL(read8);
@@ -166,3 +187,4 @@ void fec_do_powercycle_hybrids(struct Fec *);
 uint32_t fec_do_read_hybrid_firmware(struct Fec *);
 uint32_t fec_do_read_geo_pos(struct Fec *);
 void fec_do_read_id_chip(struct Fec *, uint32_t *);
+void fec_do_read_adc(struct Fec *, uint8_t);

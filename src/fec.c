@@ -18,6 +18,7 @@ fec_new()
 	fec->packet_counter = 0;
 	fec->hybrid_map = 0;
 	fec->hybrid_index = 0;
+	fec->adc_channel = 0;
 	fec->state = FEC_STATE_FRESH;
 
 	fec_default_config(fec);
@@ -47,6 +48,7 @@ void
 fec_default_config(struct Fec *self)
 {
 	self->config.debug_data_format = 0;
+	self->config.debug = 0;
 	self->config.latency_reset = 47;
 	self->config.latency_data_max = 4087;
 	self->config.latency_data_error = 8;
@@ -55,6 +57,14 @@ fec_default_config(struct Fec *self)
 	self->config.tp_latency = 65;
 	self->config.tp_number = 1;
 	self->config.clock_source = 2;
+	/* from fec_config_module.cpp */
+	self->config.ckdt = 3;
+	self->config.ckbc = 2;
+	self->config.ckbc_skew = 0;
+	/* hybrid */
+	self->config.tp_skew = 0;
+	self->config.tp_width = 0;
+	self->config.tp_polarity = 0;
 }
 
 int
@@ -146,6 +156,46 @@ fec_prepare_trigger_acq_constants(struct Fec *self)
 	free(array);
 }
 
+void
+fec_prepare_configure_hybrid(struct Fec *self)
+{
+	size_t len;
+	uint16_t hybrid_map = (1 << self->hybrid_index);
+	uint32_t *array;
+       
+	if (self->config.clock_source == 3) {
+		uint32_t test_pulser_config;
+		uint32_t clock_bunch_counter_config;
+		uint32_t clock_data_config;
+
+		test_pulser_config = (self->config.tp_polarity << 7)
+		    | (self->config.tp_width << 4)
+		    | self->config.tp_skew;
+
+		clock_bunch_counter_config = (self->config.ckbc_skew << 4)
+		    | self->config.ckbc;
+
+		clock_data_config = self->config.ckdt * 2;
+
+		len = 7;
+		array = util_fill_array32(len, 0,
+		    2, test_pulser_config,
+		    7, clock_bunch_counter_config,
+		    5, clock_data_config);
+	} else {
+		len = 7;
+		array = util_fill_array32(len, 0,
+		    2, self->config.tp_skew,
+		    3, self->config.tp_width,
+		    4, self->config.tp_polarity);
+	}
+
+	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
+	    hybrid_map);
+	udp_sendbuf_push_array32(self->socket, array, len);
+	free(array);
+}
+
 /*
  * note: communicating with a PCA9534 chip (8 bit I2C register)
  * note: this does not work with all FEC firmwares.
@@ -209,7 +259,7 @@ void
 fec_prepare_i2c_read_adc(struct Fec *self)
 {
 	size_t len = 3;
-	uint8_t adc_channel = 0; /* TODO: Make configurable */
+	uint8_t adc_channel = self->adc_channel;
 	uint8_t i2c_address = 0x48 + (self->hybrid_index % 2);
 	uint8_t hybrid_bit = self->hybrid_index_map[self->hybrid_index];
 	uint8_t hybrid_map = (1 << hybrid_bit);
@@ -306,6 +356,7 @@ FEC_WRITE(trigger_acq_constants, FEC_DEFAULT_VMMAPP_PORT)
 FEC_WRITE(acq_on, FEC_DEFAULT_VMMAPP_PORT)
 FEC_WRITE(acq_off, FEC_DEFAULT_VMMAPP_PORT)
 FEC_WRITE(set_mask, FEC_DEFAULT_VMMAPP_PORT)
+FEC_WRITE(configure_hybrid, FEC_DEFAULT_S6_PORT)
 FEC_I2C_SEQ(read_adc, FEC_DEFAULT_I2C_PORT)
 FEC_I2C(write, FEC_DEFAULT_I2C_PORT)
 FEC_I2C(read8, FEC_DEFAULT_I2C_PORT)
@@ -387,29 +438,30 @@ fec_decode_system_registers(struct Fec *self)
 	main_clock_status = ntohl(*(uint32_t *)(buf + 124));
 	firmware_reg = ntohl(*(uint32_t *)(buf + 140));
 
-	printf("firmware = 0x%08x\n", firmware);
-	printf("mac_vendor = 0x%08x\n", mac_vendor);
-	printf("mac_device = 0x%08x\n", mac_device);
-	printf("fec_ip = 0x%08x (%d.%d.%d.%d)\n", fec_ip,
+	printf("FEC System registers:\n");
+	printf(" firmware = 0x%08x\n", firmware);
+	printf(" mac_vendor = 0x%08x\n", mac_vendor);
+	printf(" mac_device = 0x%08x\n", mac_device);
+	printf(" fec_ip = 0x%08x (%d.%d.%d.%d)\n", fec_ip,
 	    ((uint8_t*)&fec_ip)[3],
 	    ((uint8_t*)&fec_ip)[2],
 	    ((uint8_t*)&fec_ip)[1],
 	    ((uint8_t*)&fec_ip)[0]);
-	printf("udp_data_port = 0x%04x (dec: %d)\n", udp_data, udp_data);
-	printf("udp_sc_port = 0x%04x (dec: %d)\n", udp_sc, udp_sc);
-	printf("udp_frame_delay = 0x%04x\n", udp_delay);
-	printf("date_flow_par = 0x%04x\n", date_flow);
-	printf("eth_ctrl_reg = 0x%04x\n", eth);
-	printf("sc_ctrl_reg = 0x%04x\n", sc_mode);
-	printf("daq_dest_ip = 0x%08x (%d.%d.%d.%d)\n", daq_ip,
+	printf(" udp_data_port = 0x%04x (dec: %d)\n", udp_data, udp_data);
+	printf(" udp_sc_port = 0x%04x (dec: %d)\n", udp_sc, udp_sc);
+	printf(" udp_frame_delay = 0x%04x\n", udp_delay);
+	printf(" date_flow_par = 0x%04x\n", date_flow);
+	printf(" eth_ctrl_reg = 0x%04x\n", eth);
+	printf(" sc_ctrl_reg = 0x%04x\n", sc_mode);
+	printf(" daq_dest_ip = 0x%08x (%d.%d.%d.%d)\n", daq_ip,
 	    ((uint8_t*)&daq_ip)[3],
 	    ((uint8_t*)&daq_ip)[2],
 	    ((uint8_t*)&daq_ip)[1],
 	    ((uint8_t*)&daq_ip)[0]);
-	printf("dtc_link_ctrl_reg = 0x%08x\n", dtc_link);
-	printf("main_clock_select_reg = 0x%08x\n", main_clock);
-	printf("main_clock_status = 0x%08x\n", main_clock_status);
-	printf("firmware_reg = 0x%08x\n", firmware_reg);
+	printf(" dtc_link_ctrl_reg = 0x%08x\n", dtc_link);
+	printf(" main_clock_select_reg = 0x%08x\n", main_clock);
+	printf(" main_clock_status = 0x%08x\n", main_clock_status);
+	printf(" firmware_reg = 0x%08x\n", firmware_reg);
 }
 
 FEC_DECODE_DEFAULT(trigger_acq_constants, 80)
@@ -419,6 +471,7 @@ FEC_DECODE_DEFAULT(acq_on, 24)
 FEC_DECODE_DEFAULT(acq_off, 24)
 FEC_DECODE_DEFAULT(set_mask, 24)
 FEC_DECODE_DEFAULT(i2c_write, 24)
+FEC_DECODE_DEFAULT(configure_hybrid, 40)
 
 void
 fec_decode_i2c_read8(struct Fec *self)
@@ -426,7 +479,9 @@ fec_decode_i2c_read8(struct Fec *self)
 	uint8_t value;
 	assert(self->socket->receivedlen == 24);
         value = self->socket->recvbuf[23];
-	printf("register value (8-bit): %u (0x%02x)\n", value, value);
+	if (self->config.debug == 1) {
+		printf("register value (8-bit): %u (0x%02x)\n", value, value);
+	}
 	self->i2c.result = value;
 }
 
@@ -436,7 +491,9 @@ fec_decode_i2c_read32(struct Fec *self)
 	uint32_t value;
 	assert(self->socket->receivedlen == 24);
         value = ntohl(((uint32_t *)self->socket->recvbuf)[5]);
-	printf("register value (32-bit): %u (0x%08x)\n", value, value);
+	if (self->config.debug == 1) {
+		printf("register value (32-bit): %u (0x%08x)\n", value, value);
+	}
 	self->i2c.result = value;
 }
 
@@ -449,7 +506,7 @@ fec_decode_i2c_read_adc(struct Fec *self)
 	if (self->i2c.sequence == 2) {
 		uint16_t adc_value = ntohs(
 		    ((uint16_t *)self->socket->recvbuf)[11]) >> 4;
-		printf("adc_value: %u\n", adc_value);
+		self->i2c.result = adc_value;
 	}
 
 	/* 
@@ -493,7 +550,22 @@ fec_do_read_id_chip(struct Fec *self, uint32_t *id /* fixed len 4 */)
 		uint32_t data;
 		fec_i2c_write(self, 88, 0x80, 0);
 		data = fec_i2c_read32(self, 88, 0, n * 4);
-		printf("data = %08x\n", data);
+		/* printf("data = %08x\n", data); */
 		id[n - 1] = data;
 	}
+}
+
+void
+fec_do_read_adc(struct Fec *self, uint8_t ch)
+{
+	self->adc_channel = ch;
+	fec_i2c_read_adc(self, 0);
+	fec_i2c_read_adc(self, 1);
+	fec_i2c_read_adc(self, 2);
+
+	if (ch == FEC_ADC_CH_TEMPERATURE) {
+		float t = (float)(725 - self->i2c.result) / 1.85f;
+		printf("temperature = %.1f\n", t);
+	}
+	printf("adc value [%u] = %d\n", ch, self->i2c.result);
 }

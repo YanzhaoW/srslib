@@ -31,6 +31,7 @@ udp_socket_config(struct UdpSocket *self, char *ip_addr, int port)
 	self->config.port = (in_port_t)port;
 	self->config.receive_timeout_usec = 50000;
 	self->config.socket_buf_size = 0x2000000;
+	self->config.debug = 0;
 	return 0;
 }
 
@@ -189,8 +190,10 @@ udp_socket_send_to_port(struct UdpSocket *self, int port)
 	remote.sin_port = htons((in_port_t)port);
 	remote.sin_addr.s_addr = inet_addr(self->config.ip_address);
 
-	print_hex(self->sendbuf, self->sendlen, "udp_socket_send_to_port",
-	    ">>>");
+	if (self->config.debug == 1) {
+		print_hex(self->sendbuf, self->sendlen,
+		    "udp_socket_send_to_port", ">>>");
+	}
 
 	rc = sendto(self->socket, self->sendbuf, self->sendlen, 0,
 	    (struct sockaddr *)&remote,
@@ -214,7 +217,10 @@ udp_socket_send(struct UdpSocket *self)
 		return 0;
 	}
 
-	print_hex(self->sendbuf, self->sendlen, "udp_socket_send", ">>>");
+	if (self->config.debug == 1) {
+		print_hex(self->sendbuf, self->sendlen,
+		    "udp_socket_send", ">>>");
+	}
 
 	rc = sendto(self->socket, self->sendbuf, self->sendlen, 0,
 	    (struct sockaddr *)&self->config.remote,
@@ -329,8 +335,10 @@ try_again:
 
 	self->receivedlen = rc;
 
-	print_hex(self->recvbuf, (size_t)self->receivedlen,
-	    "udp_socket_receive", "<<<");
+	if (self->config.debug == 1) {
+		print_hex(self->recvbuf, (size_t)self->receivedlen,
+		    "udp_socket_receive", "<<<");
+	}
 
 	if ((size_t)self->receivedlen != self->recvlen) {
 		printf("read length mismatch (expect %lu, got %lu)\n",

@@ -14,6 +14,7 @@ struct UdpSocketConfig
 	in_port_t port;
 	struct sockaddr_in remote;
 	unsigned int receive_timeout_usec;
+	int debug;
 };
 
 struct UdpSocket
