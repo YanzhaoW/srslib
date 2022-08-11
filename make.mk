@@ -9,6 +9,9 @@ endif
 ifeq (,$(SRSCLI_COMPILE_MODE))
   SRSCLI_COMPILE_MODE := debug
 endif
+ifeq (valgrind,$(MODE))
+  SRSCLI_COMPILE_MODE := valgrind
+endif
 ifeq (gcov,$(MODE))
   SRSCLI_COMPILE_MODE := gcov
 endif
@@ -79,6 +82,10 @@ endif
 ifeq (release,$(SRSCLI_COMPILE_MODE))
   CFLAGS += -O3
   BUILD_DIR := $(BUILD_DIR)_release
+endif
+ifeq (valgrind,$(SRSCLI_COMPILE_MODE))
+  BUILD_DIR := $(BUILD_DIR)_valgrind
+  CFLAGS += -O
 endif
 
 BUILD_DIR_PURE := $(BUILD_DIR)

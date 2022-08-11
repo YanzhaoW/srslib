@@ -8,6 +8,7 @@
 #include <udp_socket.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <errno.h>
 #include <poll.h>
 
@@ -32,6 +33,7 @@ udp_socket_config(struct UdpSocket *self, char *ip_addr, int port)
 	self->config.receive_timeout_usec = 50000;
 	self->config.socket_buf_size = 0x2000000;
 	self->config.debug = 0;
+	self->config.address = inet_addr(self->config.ip_address);
 	return 0;
 }
 
@@ -40,7 +42,7 @@ udp_socket_init(struct UdpSocket *self)
 {
 	int rc;
 	struct sockaddr_in addr;
-	struct timeval timeout;
+	int flags;
 
 	memset(&addr, 0, sizeof(struct sockaddr_in));
 
@@ -49,6 +51,10 @@ udp_socket_init(struct UdpSocket *self)
 		perror("socket");
 		abort();
 	}
+
+	/* set non-blocking */
+	flags = fcntl(self->socket, F_GETFL);
+	fcntl(self->socket, F_SETFL, flags | O_NONBLOCK);
 	
 	rc = setsockopt(self->socket, SOL_SOCKET, SO_RCVBUF,
 		(char *)&self->config.socket_buf_size,
@@ -58,6 +64,9 @@ udp_socket_init(struct UdpSocket *self)
 		abort();
 	}
 
+#if 0
+	{
+	struct timeval timeout;
 	timeout.tv_sec = 0;
 	timeout.tv_usec = self->config.receive_timeout_usec;
 	rc = setsockopt(self->socket, SOL_SOCKET, SO_RCVTIMEO,
@@ -66,6 +75,8 @@ udp_socket_init(struct UdpSocket *self)
 		perror("setsockopt(SO_RCVTIMEO)");
 		abort();
 	}
+	}
+#endif
 
 	addr.sin_family = AF_INET;
 	addr.sin_port = (in_port_t)htons(self->config.port);
@@ -82,7 +93,8 @@ udp_socket_init(struct UdpSocket *self)
 
 	self->config.remote.sin_family = AF_INET;
 	self->config.remote.sin_port = htons(self->config.port);
-	self->config.remote.sin_addr.s_addr = inet_addr(self->config.ip_address);
+	self->config.remote.sin_addr.s_addr =
+	    inet_addr(self->config.ip_address);
 
 	printf("Remote IP address is: %s\n", self->config.ip_address);
 	return 0;
@@ -188,7 +200,7 @@ udp_socket_send_to_port(struct UdpSocket *self, int port)
 
 	remote.sin_family = AF_INET;
 	remote.sin_port = htons((in_port_t)port);
-	remote.sin_addr.s_addr = inet_addr(self->config.ip_address);
+	remote.sin_addr.s_addr = self->config.address;
 
 	if (self->config.debug == 1) {
 		print_hex(self->sendbuf, self->sendlen,
@@ -287,6 +299,37 @@ udp_socket_wait_for_read(struct UdpSocket *self, int milliseconds)
 
 int
 udp_socket_select(struct UdpSocket *self, int milliseconds)
+{
+	int rc;
+	fd_set readfds;
+	struct timeval tv;
+
+	FD_ZERO(&readfds);
+	FD_SET(self->socket, &readfds);
+
+	tv.tv_sec = 0;
+	tv.tv_usec = milliseconds * 1000;
+
+	rc = select(self->socket + 1, &readfds, NULL, NULL, &tv);
+
+	if (rc > 0) {
+		if (FD_ISSET(self->socket, &readfds)) {
+			return rc;
+		} else {
+			printf("what?\n");
+			abort();
+		}
+	} else if (rc == 0) {
+		printf("select timed out.\n");
+		abort();
+	} else {
+		perror("select");
+		abort();
+	}
+}
+
+int
+udp_socket_poll(struct UdpSocket *self, int milliseconds)
 {
 	int rc;
 	struct pollfd fd;

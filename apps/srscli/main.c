@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <fec.h>
-#include <udp_socket.h>
+#include <unistd.h>
 
 int
 main(int argc, char *argv[])
 {
 	struct Fec *fec;
+	uint8_t hybrid;
 	(void)argc;
 	(void)argv;
 	printf("srscli\n");
@@ -14,7 +15,10 @@ main(int argc, char *argv[])
 	fec_configure(fec);
 	fec_open(fec, FEC_DEFAULT_IP, FEC_DEFAULT_FEC_PORT);
 
+	printf("Resetting the FEC.\n");
 	fec_write_reset(fec);
+	sleep(1);
+
 	fec_read_system_registers(fec);
 	fec_read_link_status(fec);
 	fec_write_trigger_acq_constants(fec);
@@ -39,21 +43,27 @@ main(int argc, char *argv[])
 		pos = fec_do_read_geo_pos(fec);
 		printf("hybrid geo pos = 0x%08x\n", pos);
 	}
-	{
+
+	for (hybrid = 0; hybrid < 4; ++hybrid) {
 		uint32_t id[4];
-		fec->hybrid_index = 0;
+		fec->hybrid_index = hybrid;
 		fec_do_read_id_chip(fec, id);
-		printf("hybrid id = 0x%08x:%08x:%08x:%08x\n",
+		printf("hybrid id [%d] = 0x%08x:%08x:%08x:%08x\n", hybrid,
 		    id[0], id[1], id[2], id[3]);
 	}
 
-	/*
-	 * fec->config.debug = 1;
-	 * fec->socket->config.debug = 1;
-	 */
 	fec_write_configure_hybrid(fec);
 
-	fec_do_read_adc(fec, 2);
+	for (hybrid = 0; hybrid < 4; ++hybrid) {
+		fec_debug(fec, 1);
+		fec_do_send_config(fec, hybrid, 0);
+		fec_do_send_config(fec, hybrid, 1);
+		fec_debug(fec, 0);
+		fec_read_temperature(fec, hybrid, 0);
+		fec_read_temperature(fec, hybrid, 1);
+	}
+
+	fec_debug(fec, 1);
 
 	/*
 	 * does not work with all FEC firmwares.

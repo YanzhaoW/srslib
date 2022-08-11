@@ -12,16 +12,24 @@ struct Fec *
 fec_new()
 {
 	struct Fec *fec = (struct Fec *)malloc(sizeof(struct Fec));
+	size_t h, v;
 	assert(fec != NULL);
 
 	fec->socket = udp_socket_new();
 	fec->packet_counter = 0;
 	fec->hybrid_map = 0;
 	fec->hybrid_index = 0;
+	fec->vmm_index = 0;
 	fec->adc_channel = 0;
 	fec->state = FEC_STATE_FRESH;
 
 	fec_default_config(fec);
+
+	for (h = 0; h < FEC_N_HYBRIDS; ++h) {
+		for (v = 0; v < FEC_N_VMM; ++v) {
+			fec_vmm_default_config(&fec->hybrid[h].vmm[v]);
+		}
+	}
 
 	return fec;
 }
@@ -42,6 +50,24 @@ fec_configure(struct Fec *self)
 		self->hybrid_index_map = hybrid_index_map_swapped;
 	}
 	self->state = FEC_STATE_CONFIGURED;
+}
+
+void
+fec_vmm_default_config(struct Vmm *self)
+{
+	self->config.nskipm_i = 0;
+	self->config.sL0cktest = 0;
+	self->config.sL0dckinv = 0;
+	self->config.sL0ckinv = 0;
+	self->config.sL0ena = 0;
+	self->config.truncate = 0;
+	self->config.nskip = 0;
+	self->config.window = 0;
+	self->config.rollover = 0;
+	self->config.l0offset = 0;
+	self->config.offset = 0;
+	self->config.sm5_sm0 = 1; /* 0: pulser DAC, 1: threshold DAC, 2: bandgap refererce, 3: temperature sensor */
+	self->config.scmx = 0;
 }
 
 void
@@ -260,7 +286,7 @@ fec_prepare_i2c_read_adc(struct Fec *self)
 {
 	size_t len = 3;
 	uint8_t adc_channel = self->adc_channel;
-	uint8_t i2c_address = 0x48 + (self->hybrid_index % 2);
+	uint8_t i2c_address = 0x48 + (self->vmm_index % 2);
 	uint8_t hybrid_bit = self->hybrid_index_map[self->hybrid_index];
 	uint8_t hybrid_map = (1 << hybrid_bit);
 	uint16_t address;
@@ -327,7 +353,6 @@ fec_prepare_i2c_read32(struct Fec *self)
 	fec_prepare_i2c_rw(self, I2C_READ);
 }
 
-
 void
 fec_prepare_i2c_rw(struct Fec *self, uint8_t rw)
 {
@@ -348,6 +373,38 @@ fec_prepare_i2c_rw(struct Fec *self, uint8_t rw)
 	free(array);
 }
 
+void
+fec_prepare_send_config(struct Fec *self)
+{
+	uint16_t hybrid_map = 0;
+	uint32_t *array;
+	size_t len;
+	hybrid_map = (uint16_t)(self->hybrid_index * 2 + self->vmm_index);
+
+	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
+	    hybrid_map);
+
+	udp_sendbuf_push32(self->socket, 0);
+
+	array = fec_global_registers2(self, self->hybrid_index,
+	    self->vmm_index, &len);
+	udp_sendbuf_push_array32(self->socket, array, len);
+	free(array);
+
+	array = fec_channel_registers(self, self->hybrid_index,
+	    self->vmm_index, &len);
+	udp_sendbuf_push_array32(self->socket, array, len);
+	free(array);
+
+	array = fec_global_registers(self, self->hybrid_index,
+	    self->vmm_index, &len);
+	udp_sendbuf_push_array32(self->socket, array, len);
+	free(array);
+
+	udp_sendbuf_push32(self->socket, 128);
+	udp_sendbuf_push32(self->socket, 1);
+}
+
 FEC_READ(system_registers, FEC_DEFAULT_FEC_PORT)
 FEC_WRITE(reset, FEC_DEFAULT_FEC_PORT)
 FEC_WRITE(powercycle_hybrids, FEC_DEFAULT_DVMI2C_PORT)
@@ -357,6 +414,7 @@ FEC_WRITE(acq_on, FEC_DEFAULT_VMMAPP_PORT)
 FEC_WRITE(acq_off, FEC_DEFAULT_VMMAPP_PORT)
 FEC_WRITE(set_mask, FEC_DEFAULT_VMMAPP_PORT)
 FEC_WRITE(configure_hybrid, FEC_DEFAULT_S6_PORT)
+FEC_WRITE(send_config, FEC_DEFAULT_VMMASIC_PORT)
 FEC_I2C_SEQ(read_adc, FEC_DEFAULT_I2C_PORT)
 FEC_I2C(write, FEC_DEFAULT_I2C_PORT)
 FEC_I2C(read8, FEC_DEFAULT_I2C_PORT)
@@ -472,6 +530,7 @@ FEC_DECODE_DEFAULT(acq_off, 24)
 FEC_DECODE_DEFAULT(set_mask, 24)
 FEC_DECODE_DEFAULT(i2c_write, 24)
 FEC_DECODE_DEFAULT(configure_hybrid, 40)
+FEC_DECODE_DEFAULT(send_config, 584)
 
 void
 fec_decode_i2c_read8(struct Fec *self)
@@ -556,16 +615,130 @@ fec_do_read_id_chip(struct Fec *self, uint32_t *id /* fixed len 4 */)
 }
 
 void
-fec_do_read_adc(struct Fec *self, uint8_t ch)
+fec_do_read_adc(struct Fec *self, uint8_t hybrid, uint8_t vmm, uint8_t ch)
 {
 	self->adc_channel = ch;
+	self->hybrid_index = hybrid;
+	self->vmm_index = vmm;
+
 	fec_i2c_read_adc(self, 0);
 	fec_i2c_read_adc(self, 1);
 	fec_i2c_read_adc(self, 2);
 
 	if (ch == FEC_ADC_CH_TEMPERATURE) {
 		float t = (float)(725 - self->i2c.result) / 1.85f;
-		printf("temperature = %.1f\n", t);
+		printf("temperature[hybrid=%u,vmm=%u] = %.1f\n", hybrid, vmm,
+		    t);
+	} else {
+		printf("adc value [%u] = %d\n", ch, self->i2c.result);
 	}
-	printf("adc value [%u] = %d\n", ch, self->i2c.result);
+}
+
+void
+fec_debug(struct Fec *self, int level)
+{
+	self->config.debug = level;
+	self->socket->config.debug = level;
+}
+
+void
+fec_do_send_config(struct Fec *self, uint8_t hybrid, uint8_t vmm)
+{
+	self->hybrid_index = hybrid;
+	self->vmm_index = vmm;
+	fec_i2c_write(self, 65, 0, 2);
+
+	fec_write_send_config(self);
+}
+
+uint32_t *
+fec_global_registers2(struct Fec *self, uint8_t hybrid, uint8_t vmm,
+    size_t *len)
+{
+	uint32_t *array;
+	size_t idx = 0;
+	const struct VmmConfig *c; 
+	size_t n_regs = FEC_REG_GLOBAL2_END - FEC_REG_GLOBAL2_START + 1;
+	size_t size = n_regs * 2;
+
+	c = fec_vmm_config(self, hybrid, vmm);
+
+	array = (uint32_t *)calloc(sizeof(uint32_t), size);
+	assert(array != NULL);
+
+	/* magic number of BCID, 31 */
+	array[idx++] = FEC_REG_GLOBAL2_START;
+	array[idx++] = (c->nskipm_i << 31);
+
+	array[idx++] = FEC_REG_GLOBAL2_START + 1;
+	array[idx++] = (c->sL0cktest & 1)
+	    | ((c->sL0dckinv & 1) << 1)
+	    | ((c->sL0ckinv & 1) << 2)
+	    | ((c->sL0ena & 1) << 3)
+	    | ((c->truncate & 0x3f) << 4)
+	    | ((c->nskip & 0x7f) << 10)
+	    | ((c->window & 0x7) << 17)
+	    | ((c->rollover & 0xfff) << 20);
+
+	array[idx++] = FEC_REG_GLOBAL2_START + 2;
+	array[idx++] = (c->l0offset & 0xfff)
+	    | ((c->offset & 0xfff) << 12);
+
+	*len = size;
+	return array;
+}
+
+uint32_t *
+fec_global_registers(struct Fec *self, uint8_t hybrid, uint8_t vmm,
+    size_t *len)
+{
+	uint32_t *array;
+	const struct VmmConfig *c; 
+	size_t n_regs = FEC_REG_GLOBAL1_END - FEC_REG_GLOBAL1_START + 1;
+	size_t size = n_regs * 2;
+	size_t i;
+
+	c = fec_vmm_config(self, hybrid, vmm);
+
+	array = (uint32_t *)calloc(sizeof(uint32_t), size);
+	assert(array != NULL);
+
+	for (i = 0; i < n_regs; ++i) {
+		array[i * 2] = (uint32_t)(FEC_REG_GLOBAL1_START + i);
+	}
+
+	array[2 * 2 + 1] = (c->sm5_sm0 & 0x3f) << 7;
+
+	*len = size;
+	return array;
+}
+
+uint32_t *
+fec_channel_registers(struct Fec *self, uint8_t hybrid, uint8_t vmm,
+    size_t *len)
+{
+	uint32_t *array;
+	const struct VmmConfig *c; 
+	size_t n_regs = FEC_REG_CHANNEL_END - FEC_REG_CHANNEL_START + 1;
+	size_t size = n_regs * 2;
+	size_t i;
+
+	c = fec_vmm_config(self, hybrid, vmm);
+	(void)c;
+
+	array = (uint32_t *)calloc(sizeof(uint32_t), size);
+	assert(array != NULL);
+
+	for (i = 0; i < n_regs; ++i) {
+		array[i * 2] = (uint32_t)(FEC_REG_CHANNEL_START + i);
+	}
+
+	*len = size;
+	return array;
+}
+
+const struct VmmConfig *
+fec_vmm_config(struct Fec *self, uint8_t hybrid, uint8_t vmm)
+{
+	return &self->hybrid[hybrid].vmm[vmm].config;
 }

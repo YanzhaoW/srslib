@@ -13,11 +13,21 @@
 
 #define FEC_DEFAULT_IP "10.0.0.2"
 
+#define FEC_N_HYBRIDS 8
+#define FEC_N_VMM 2
+
 #define FEC_CMD_WRITE		0xaa
 #define FEC_CMD_READ		0xbb
 #define FEC_CMD_TYPE_LIST	0xaa
 #define FEC_CMD_TYPE_PAIRS	0xaa
 #define FEC_CMD_LENGTH		0xffff
+
+#define FEC_REG_GLOBAL2_START	 0
+#define FEC_REG_GLOBAL2_END	 2
+#define FEC_REG_CHANNEL_START	 3
+#define FEC_REG_CHANNEL_END	66
+#define FEC_REG_GLOBAL1_START	67
+#define FEC_REG_GLOBAL1_END	69
 
 #define FEC_ADC_CH_TEMPERATURE 2
 
@@ -65,9 +75,32 @@ struct Fec
 	uint32_t packet_counter;
 	uint8_t hybrid_map;
 	uint8_t hybrid_index;
+	uint8_t vmm_index;
 	uint8_t adc_channel;
 	const uint8_t *hybrid_index_map;
 	enum FecState state;
+	struct Hybrid
+	{
+		struct Vmm
+		{
+			struct VmmConfig {
+				uint8_t nskipm_i;
+				uint8_t sL0cktest;
+				uint8_t sL0dckinv;
+				uint8_t sL0ckinv;
+				uint8_t sL0ena;
+				uint8_t truncate;
+				uint8_t nskip;
+				uint8_t window;
+				uint16_t rollover;
+				uint16_t l0offset;
+				uint16_t offset;
+				/* global */
+				uint8_t sm5_sm0;
+				uint8_t scmx;
+			} config;
+		} vmm[FEC_N_VMM];
+	} hybrid[FEC_N_HYBRIDS];
 	struct I2C
 	{
 		int sequence;
@@ -87,6 +120,7 @@ int	fec_open(struct Fec *, char *, int);
 void	fec_close(struct Fec *);
 void	fec_configure(struct Fec *);
 void	fec_default_config(struct Fec *);
+void	fec_vmm_default_config(struct Vmm *);
 int	fec_rw(struct Fec *, int, send_buffer_function, recv_buffer_function);
 void	fec_prepare_i2c_rw(struct Fec *, uint8_t);
 void	fec_prepare_send_buffer(struct Fec *, uint8_t, uint8_t, uint16_t);
@@ -174,6 +208,7 @@ FEC_WRITE_FUNCTION_DECL(acq_on);
 FEC_WRITE_FUNCTION_DECL(acq_off);
 FEC_WRITE_FUNCTION_DECL(set_mask);
 FEC_WRITE_FUNCTION_DECL(configure_hybrid);
+FEC_WRITE_FUNCTION_DECL(send_config);
 FEC_I2C_SEQ_FUNCTION_DECL(read_adc);
 FEC_I2C_FUNCTION_DECL(write);
 FEC_I2C_FUNCTION_DECL(read8);
@@ -187,4 +222,13 @@ void fec_do_powercycle_hybrids(struct Fec *);
 uint32_t fec_do_read_hybrid_firmware(struct Fec *);
 uint32_t fec_do_read_geo_pos(struct Fec *);
 void fec_do_read_id_chip(struct Fec *, uint32_t *);
-void fec_do_read_adc(struct Fec *, uint8_t);
+void fec_do_read_adc(struct Fec *, uint8_t, uint8_t, uint8_t);
+#define fec_read_temperature(fec, hybrid, vmm) \
+    fec_do_read_adc(fec, hybrid, vmm, FEC_ADC_CH_TEMPERATURE)
+void fec_debug(struct Fec *, int);
+void fec_do_send_config(struct Fec *, uint8_t, uint8_t);
+
+uint32_t *fec_global_registers2(struct Fec *, uint8_t, uint8_t, size_t *);
+uint32_t *fec_global_registers(struct Fec *, uint8_t, uint8_t, size_t *);
+uint32_t *fec_channel_registers(struct Fec *, uint8_t, uint8_t, size_t *);
+const struct VmmConfig *fec_vmm_config(struct Fec *, uint8_t, uint8_t);

@@ -12,6 +12,7 @@ struct UdpSocketConfig
 	char ip_address[MAX_IP_ADDR_LEN];
 	int socket_buf_size;
 	in_port_t port;
+	in_addr_t address;
 	struct sockaddr_in remote;
 	unsigned int receive_timeout_usec;
 	int debug;
@@ -39,6 +40,7 @@ int udp_socket_has_pending_datagram(struct UdpSocket *);
 ssize_t udp_socket_pending_datagram_size(struct UdpSocket *);
 int udp_socket_wait_for_read(struct UdpSocket *, int);
 int udp_socket_select(struct UdpSocket *, int);
+int udp_socket_poll(struct UdpSocket *, int);
 ssize_t udp_socket_receive(struct UdpSocket *, size_t);
 
 void udp_sendbuf_reset(struct UdpSocket *);
