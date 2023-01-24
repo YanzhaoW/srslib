@@ -55,19 +55,45 @@ fec_configure(struct Fec *self)
 void
 fec_vmm_default_config(struct Vmm *self)
 {
+	int i;
+
 	self->config.nskipm_i = 0;
 	self->config.sL0cktest = 0;
 	self->config.sL0dckinv = 0;
 	self->config.sL0ckinv = 0;
 	self->config.sL0ena = 0;
+	self->config.sL0enaV = 0;
 	self->config.truncate = 0;
 	self->config.nskip = 0;
 	self->config.window = 0;
 	self->config.rollover = 0;
 	self->config.l0offset = 0;
 	self->config.offset = 0;
-	self->config.sm5_sm0 = 1; /* 0: pulser DAC, 1: threshold DAC, 2: bandgap refererce, 3: temperature sensor */
+	self->config.s10b = 1;
+	self->config.s8b = 1;
+	self->config.sbfm = 1;
+	self->config.sbip = 1; /* set in the GUI */
+	self->config.sc10b = 3;
+	self->config.sc8b = 3;
 	self->config.scmx = 0;
+	self->config.sdcks = 1;
+	self->config.sdp10 = 300; /* 300 in GUI */
+	self->config.sdt = 300;   /* 300 in GUI */
+	self->config.sg = 2;
+	self->config.sm5_sm0 = 4; /* 0: pulser DAC, 1: threshold DAC, 2: bandgap refererce, 3: temperature sensor */
+	
+	for (i = 0; i < FEC_N_VMM_CHANNELS; ++i ) {
+		self->config.channel[i].sc = 0;
+		self->config.channel[i].sl = 0;
+		self->config.channel[i].st = 1;
+		self->config.channel[i].sth = 0;
+		self->config.channel[i].sm = 0;
+		self->config.channel[i].smx = 0;
+		self->config.channel[i].sd = 0;
+		self->config.channel[i].sz10b = 0;
+		self->config.channel[i].sz08b = 0;
+		self->config.channel[i].sz06b = 0;
+	}
 }
 
 void
@@ -182,6 +208,7 @@ fec_prepare_trigger_acq_constants(struct Fec *self)
 	free(array);
 }
 
+/* this configures the VMM hybrid parameters common for both VMM chips */
 void
 fec_prepare_configure_hybrid(struct Fec *self)
 {
@@ -707,7 +734,66 @@ fec_global_registers(struct Fec *self, uint8_t hybrid, uint8_t vmm,
 		array[i * 2] = (uint32_t)(FEC_REG_GLOBAL1_START + i);
 	}
 
-	array[2 * 2 + 1] = (c->sm5_sm0 & 0x3f) << 7;
+	/* SPI 0 */
+	array[1] = ((0 & 0xf) << 28)
+	    | ((c->slvs & 1) << 27)
+	    | ((c->s32 & 1) << 26)
+	    | ((c->stcr & 1) << 25)
+	    | ((c->ssart & 1) << 24)
+	    | ((c->srec & 1) << 23)
+	    | ((c->stlc & 1) << 22)
+	    | ((c->sbip & 1) << 21)
+	    | ((c->srat & 1) << 20)
+	    | ((c->sfrst & 1) << 19)
+	    | ((c->slvsbc & 1) << 18)
+	    | ((c->slvstp & 1) << 17)
+	    | ((c->slvstk & 1) << 16)
+	    | ((c->slvsdt & 1) << 15)
+	    | ((c->slvsart & 1) << 14)
+	    | ((c->slvstki & 1) << 13)
+	    | ((c->slvsena & 1) << 12)
+	    | ((c->slvs6b & 1) << 11)
+	    | ((c->sL0enaV & 1) << 10)
+	    | ((0 & 0xff) << 2)
+	    | ((c->reset1 & 1) << 1)
+	    | ((c->reset2 & 1) << 0);
+
+	/* SPI 1 */
+	array[3] = ((c->sdt & 0x3f) << 26)
+	    | ((c->sdp10 & 0x3ff) << 16)
+	    | ((c->sc10b & 0x3) << 14)
+	    | ((c->sc8b & 0x3) << 12)
+	    | ((c->sc6b & 0x7) << 9)
+	    | ((c->s8b & 1) << 8)
+	    | ((c->s6b & 1) << 7)
+	    | ((c->s10b & 1) << 6)
+	    | ((c->sdcks & 1) << 5)
+	    | ((c->sdcka & 1) << 4)
+	    | ((c->sdck6b & 1) << 3)
+	    | ((c->sdrv & 1) << 2)
+	    | ((c->stpp & 1) << 1);
+
+	/* SPI 2 */
+	array[5] = ((c->sp & 1) << 31)
+	    | ((c->sdp &   1) << 30)
+	    | ((c->sbmx &  1) << 29)
+	    | ((c->sbft &  1) << 28)
+	    | ((c->sbfp &  1) << 27)
+	    | ((c->sbfm &  1) << 26)
+	    | ((c->slg &   1) << 25)
+	    | ((c->sm5_sm0 & 0x3f) << 19)
+	    | ((c->scmx &  1) << 18)
+	    | ((c->sfa &   1) << 17)
+	    | ((c->sfam &  1) << 16)
+	    | ((c->st &  0x3) << 14)
+	    | ((c->sfm &   1) << 13)
+	    | ((c->sg &  0x7) << 10)
+	    | ((c->sng &   1) << 9)
+	    | ((c->stot &  1) << 8)
+	    | ((c->sttt &  1) << 7)
+	    | ((c->ssh &   1) << 6)
+	    | ((c->stc & 0x3) << 4)
+	    | (((c->sdt >> 6) & 0xf) << 0);
 
 	*len = size;
 	return array;
@@ -731,6 +817,18 @@ fec_channel_registers(struct Fec *self, uint8_t hybrid, uint8_t vmm,
 
 	for (i = 0; i < n_regs; ++i) {
 		array[i * 2] = (uint32_t)(FEC_REG_CHANNEL_START + i);
+		/* TODO: need to reverse bit order here? */
+		array[i * 2 + 1] = ((c->channel[i].sc & 1) << 23)
+		    | ((c->channel[i].sl & 1) << 22)
+		    | ((c->channel[i].st & 1) << 21)
+		    | ((c->channel[i].sth & 1) << 20)
+		    | ((c->channel[i].sm & 1) << 19)
+		    | ((c->channel[i].smx & 1) << 18)
+		    | ((c->channel[i].sd & 0x1f) << 13)
+		    | ((c->channel[i].sz10b & 0x1f) << 8)
+		    | ((c->channel[i].sz08b & 0xf) << 4)
+		    | ((c->channel[i].sz06b & 0x7) << 1);
+
 	}
 
 	*len = size;

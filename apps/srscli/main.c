@@ -23,14 +23,6 @@ main(int argc, char *argv[])
 	fec_read_link_status(fec);
 	fec_write_trigger_acq_constants(fec);
 
-#if 0
-	/* this can disturb comms */
-	fec_write_acq_on(fec);
-	fec_read_link_status(fec);
-	fec_write_acq_off(fec);
-	fec_read_link_status(fec);
-#endif
-
 	fec_write_set_mask(fec);
 
 	{
@@ -64,6 +56,14 @@ main(int argc, char *argv[])
 	}
 
 	fec_debug(fec, 1);
+
+	fec_write_acq_on(fec);
+	fec_read_link_status(fec);
+
+	sleep(1);
+
+	fec_write_acq_off(fec);
+	fec_read_link_status(fec);
 
 	/*
 	 * does not work with all FEC firmwares.
