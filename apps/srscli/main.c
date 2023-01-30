@@ -12,8 +12,16 @@ main(int argc, char *argv[])
 	printf("srscli\n");
 
 	fec = fec_new();
+
+	fec_add_vmm3_hybrid(fec, 0);
+	fec_add_vmm3_hybrid(fec, 1);
+	fec_add_vmm3_hybrid(fec, 2);
+	fec_add_vmm3_hybrid(fec, 3);
+
 	fec_configure(fec);
 	fec_open(fec, FEC_DEFAULT_IP, FEC_DEFAULT_FEC_PORT);
+
+	fec_debug(fec, 1);
 
 	printf("Resetting the FEC.\n");
 	fec_write_reset(fec);
@@ -21,9 +29,9 @@ main(int argc, char *argv[])
 
 	fec_read_system_registers(fec);
 	fec_read_link_status(fec);
-	fec_write_trigger_acq_constants(fec);
 
 	fec_write_set_mask(fec);
+	fec_write_trigger_acq_constants(fec);
 
 	{
 		uint32_t fw;

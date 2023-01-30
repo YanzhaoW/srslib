@@ -74,7 +74,7 @@ struct Fec
 	struct UdpSocket *socket;
 	struct FecConfig config;
 	uint32_t packet_counter;
-	uint8_t hybrid_map;
+	uint8_t channel_map;
 	uint8_t hybrid_index;
 	uint8_t vmm_index;
 	uint8_t adc_channel;
@@ -184,6 +184,7 @@ void	fec_destroy(struct Fec *);
 int	fec_open(struct Fec *, char *, int);
 void	fec_close(struct Fec *);
 void	fec_configure(struct Fec *);
+void	fec_add_vmm3_hybrid(struct Fec *, int);
 void	fec_default_config(struct Fec *);
 void	fec_vmm_default_config(struct Vmm *);
 int	fec_rw(struct Fec *, int, send_buffer_function, recv_buffer_function);

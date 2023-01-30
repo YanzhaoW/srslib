@@ -17,7 +17,7 @@ fec_new()
 
 	fec->socket = udp_socket_new();
 	fec->packet_counter = 0;
-	fec->hybrid_map = 0;
+	fec->channel_map = 0;
 	fec->hybrid_index = 0;
 	fec->vmm_index = 0;
 	fec->adc_channel = 0;
@@ -32,6 +32,15 @@ fec_new()
 	}
 
 	return fec;
+}
+
+/* add a hybrid with two VMM chips to the FEC */
+/* FEC has 8 connectors, starting at index 0 */
+void
+fec_add_vmm3_hybrid(struct Fec *self, int index)
+{
+	assert(index >= 0 && index < FEC_N_HYBRIDS);
+	self->channel_map |= (0x3 << index * 2);
 }
 
 void
@@ -174,7 +183,8 @@ void
 fec_prepare_link_status(struct Fec *self)
 {
 	uint32_t array[] = {0, 16};
-	fec_prepare_send_buffer(self, FEC_CMD_READ, FEC_CMD_TYPE_PAIRS, 1);
+	fec_prepare_send_buffer(self, FEC_CMD_READ, FEC_CMD_TYPE_PAIRS,
+	    self->channel_map);
 	udp_sendbuf_push_array32(self->socket, array, COUNTOF(array));
 }
 
@@ -182,7 +192,8 @@ void
 fec_prepare_system_registers(struct Fec *self)
 {
 	uint32_t i;
-	fec_prepare_send_buffer(self, FEC_CMD_READ, FEC_CMD_TYPE_PAIRS, 1);
+	fec_prepare_send_buffer(self, FEC_CMD_READ, FEC_CMD_TYPE_PAIRS,
+	    self->channel_map);
 	udp_sendbuf_push32(self->socket, 0);
 
 	for (i = 0; i < 16; ++i) {
@@ -203,7 +214,8 @@ fec_prepare_trigger_acq_constants(struct Fec *self)
 		10, self->config.tp_offset,
 		11, self->config.tp_latency,
 		12, self->config.tp_number);
-	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS, 1);
+	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
+	    self->channel_map);
 	udp_sendbuf_push_array32(self->socket, array, len);
 	free(array);
 }
@@ -215,7 +227,7 @@ fec_prepare_configure_hybrid(struct Fec *self)
 	size_t len;
 	uint16_t hybrid_map = (1 << self->hybrid_index);
 	uint32_t *array;
-       
+
 	if (self->config.clock_source == 3) {
 		uint32_t test_pulser_config;
 		uint32_t clock_bunch_counter_config;
@@ -277,7 +289,7 @@ fec_prepare_acq_on(struct Fec *self)
 {
 	uint32_t array[] = {0, 15, 1};
 	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
-	    self->hybrid_map);
+	    self->channel_map);
 	udp_sendbuf_push_array32(self->socket, array, COUNTOF(array));
 }
 
@@ -286,7 +298,7 @@ fec_prepare_acq_off(struct Fec *self)
 {
 	uint32_t array[] = {0, 15, 0};
 	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
-	    self->hybrid_map);
+	    self->channel_map);
 	udp_sendbuf_push_array32(self->socket, array, COUNTOF(array));
 }
 
@@ -294,9 +306,9 @@ void
 fec_prepare_set_mask(struct Fec *self)
 {
 	size_t len = 3;
-	uint32_t *array = util_fill_array32(len, 0, 8, self->hybrid_map);
+	uint32_t *array = util_fill_array32(len, 0, 8, self->channel_map);
 	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
-	    self->hybrid_map);
+	    self->channel_map);
 	udp_sendbuf_push_array32(self->socket, array, len);
 	free(array);
 }
@@ -460,7 +472,7 @@ fec_rw(struct Fec *self, int port,
 	assert(rc > 0);
 	udp_socket_wait_for_read(socket, 1000);
 
-	/* printf("packet_count = %u\n", packet_count); */
+	printf("fec_rw: packet_count = %u\n", packet_count);
 
 	while (udp_socket_has_pending_datagram(socket)) {
 		ssize_t size;
