@@ -7,6 +7,9 @@
 #define SENDBUF_SIZE 2048
 #define RECVBUF_SIZE 16384
 
+#define UDP_ERROR_SELECT_TIMED_OUT -2 /* -1 is used by select */
+#define UDP_WAIT_READ_FAILED -1
+
 struct UdpSocketConfig
 {
 	char ip_address[MAX_IP_ADDR_LEN];
@@ -39,6 +42,7 @@ ssize_t udp_socket_send_to_port(struct UdpSocket *, int);
 int udp_socket_has_pending_datagram(struct UdpSocket *);
 ssize_t udp_socket_pending_datagram_size(struct UdpSocket *);
 int udp_socket_wait_for_read(struct UdpSocket *, int);
+int udp_socket_wait_for_read_fatal(struct UdpSocket *, int);
 int udp_socket_select(struct UdpSocket *, int);
 int udp_socket_poll(struct UdpSocket *, int);
 ssize_t udp_socket_receive(struct UdpSocket *, size_t);

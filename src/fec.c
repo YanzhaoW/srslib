@@ -58,6 +58,11 @@ fec_configure(struct Fec *self)
 	} else {
 		self->hybrid_index_map = hybrid_index_map_swapped;
 	}
+	if (self->config.clock_source == 0) {
+		self->daq.port = 9000;
+	} else {
+		self->daq.port = 6006;
+	}
 	self->state = FEC_STATE_CONFIGURED;
 }
 
@@ -460,6 +465,18 @@ FEC_I2C(read8, FEC_DEFAULT_I2C_PORT)
 FEC_I2C(read32, FEC_DEFAULT_I2C_PORT)
 
 int
+fec_rw_fatal(struct Fec *self, int port,
+    send_buffer_function prepare_send, recv_buffer_function handle_reply)
+{
+	if (fec_rw(self, port, prepare_send, handle_reply) == FEC_RW_NO_DATA) {
+		printf("FATAL ERROR: no data received from FEC.\n");
+		abort();
+	} else {
+		return 0;
+	}
+}
+
+int
 fec_rw(struct Fec *self, int port,
     send_buffer_function prepare_send, recv_buffer_function handle_reply)
 {
@@ -467,10 +484,15 @@ fec_rw(struct Fec *self, int port,
 	struct UdpSocket *socket = self->socket;
 	uint32_t packet_count = self->packet_counter;
 
-	prepare_send(self);
-	rc = udp_socket_send_to_port(socket, port);
-	assert(rc > 0);
-	udp_socket_wait_for_read(socket, 1000);
+	if (prepare_send != NULL) {
+		prepare_send(self);
+		rc = udp_socket_send_to_port(socket, port);
+		assert(rc > 0);
+	}
+	
+	if (udp_socket_wait_for_read(socket, 1000) == UDP_WAIT_READ_FAILED) {
+		return FEC_RW_NO_DATA;
+	};
 
 	printf("fec_rw: packet_count = %u\n", packet_count);
 

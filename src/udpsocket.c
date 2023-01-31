@@ -55,7 +55,7 @@ udp_socket_init(struct UdpSocket *self)
 	/* set non-blocking */
 	flags = fcntl(self->socket, F_GETFL);
 	fcntl(self->socket, F_SETFL, flags | O_NONBLOCK);
-	
+
 	rc = setsockopt(self->socket, SOL_SOCKET, SO_RCVBUF,
 		(char *)&self->config.socket_buf_size,
 	 	(int)sizeof(self->config.socket_buf_size));
@@ -283,12 +283,28 @@ try_again:
 }
 
 int
+udp_socket_wait_for_read_fatal(struct UdpSocket *self, int milliseconds)
+{
+	if (udp_socket_wait_for_read(self, milliseconds) ==
+	    UDP_WAIT_READ_FAILED) {
+		abort();
+	}
+	return 0;
+}
+
+int
 udp_socket_wait_for_read(struct UdpSocket *self, int milliseconds)
 {
 	int rc = udp_socket_select(self, milliseconds);
-	if (rc <= 0) {
+	if (rc == -1) {
 		perror("udp_socket_select");
 		abort();
+	} else if (rc == UDP_ERROR_SELECT_TIMED_OUT) {
+#if 0
+		printf("udp_socket_wait_for_read: "
+		    "timeout while waiting for data.\n");
+#endif
+		return -1;
 	} else {
 #if 0
 		printf("udp_socket_wait_for_read: ready\n");
@@ -320,8 +336,7 @@ udp_socket_select(struct UdpSocket *self, int milliseconds)
 			abort();
 		}
 	} else if (rc == 0) {
-		printf("select timed out.\n");
-		abort();
+		return UDP_ERROR_SELECT_TIMED_OUT;
 	} else {
 		perror("select");
 		abort();

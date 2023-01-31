@@ -32,6 +32,8 @@
 
 #define FEC_ADC_CH_TEMPERATURE 2
 
+#define FEC_RW_NO_DATA -1
+
 #define HYBRID_ADC_TDO 0
 #define HYBRID_ADC_PDO 1
 #define HYBRID_ADC_MO  2
@@ -174,6 +176,10 @@ struct Fec
 		int reg;
 		uint32_t result;
 	} i2c;
+	struct Daq
+	{
+		int port;
+	} daq;
 };
 
 typedef void(*send_buffer_function)(struct Fec *);
@@ -188,6 +194,8 @@ void	fec_add_vmm3_hybrid(struct Fec *, int);
 void	fec_default_config(struct Fec *);
 void	fec_vmm_default_config(struct Vmm *);
 int	fec_rw(struct Fec *, int, send_buffer_function, recv_buffer_function);
+int	fec_rw_fatal(struct Fec *, int, send_buffer_function,
+    recv_buffer_function);
 void	fec_prepare_i2c_rw(struct Fec *, uint8_t);
 void	fec_prepare_send_buffer(struct Fec *, uint8_t, uint8_t, uint16_t);
 
