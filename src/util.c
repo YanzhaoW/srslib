@@ -1,9 +1,11 @@
+#define _POSIX_C_SOURCE 199309L
 #include <assert.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <sys/types.h>
+#include <time.h>
 
 #include <util.h>
 
@@ -50,3 +52,10 @@ print_hex(uint8_t *d, size_t len, const char *name, const char *prefix)
 #endif
 }
 
+double
+time_double()
+{
+	struct timespec tp;
+	clock_gettime(CLOCK_MONOTONIC, &tp);
+	return (double)tp.tv_sec + ((double)tp.tv_nsec) * 1e-9;
+}

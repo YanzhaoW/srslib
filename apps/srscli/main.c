@@ -1,28 +1,79 @@
 #include <stdio.h>
 #include <fec.h>
 #include <unistd.h>
+#include <string.h>
+#include <stdlib.h>
 
-int
-main(int argc, char *argv[])
+struct Config
 {
-	struct Fec *fec;
+	int do_start_acq;
+	int do_stop_acq;
+	int do_help;
+	int do_test_mode;
+	int verbosity;
+};
+
+struct Config *parse_args(int , char **);
+void do_start_acq(struct Fec *);
+void do_stop_acq(struct Fec *);
+void do_test_mode(struct Fec *);
+void usage(const char *);
+
+struct Config *
+parse_args(int argc, char **argv)
+{
+	struct Config *c = (struct Config *)calloc(sizeof(struct Config), 1);
+	char *argp = NULL;
+
+	if (argc == 1) {
+		c->do_test_mode = 1;
+		goto parse_ok;
+	}
+
+	argp = argv[1];
+
+#define TEST_ARG(name) (strncmp(argp, name, strlen(name)) == 0)
+	while (argc--) {
+		if (TEST_ARG("--acq-on")) {
+			c->do_start_acq = 1;
+		}
+		else if (TEST_ARG("--acq-off")) {
+			c->do_stop_acq = 1;
+		}
+		else if (TEST_ARG("--help")) {
+			c->do_help = 1;
+		}
+		else if (TEST_ARG("--verbose")) {
+			c->verbosity += 1;
+		}
+	}
+
+parse_ok:
+
+	return c;
+}
+
+void
+usage(const char *name)
+{
+	printf("srscli - A minimal wrapper around libsrs\n");
+	printf("\n");
+	printf("  Usage: %s [options]\n", name);
+	printf("\n\n");
+	printf("Options:\n");
+	printf("\t--acq-on    Start data acquisition.\n");
+	printf("\t--acq-off   Stop data acquisition.\n");
+	printf("\t--help      Show this help.\n");
+	printf("\t--verbose   Increase verbosity level.\n");
+	printf("\n");
+}
+
+void
+do_test_mode(struct Fec *fec)
+{
 	uint8_t hybrid;
-	(void)argc;
-	(void)argv;
-	printf("srscli\n");
 
-	fec = fec_new();
-
-	fec_add_vmm3_hybrid(fec, 0);
-	fec_add_vmm3_hybrid(fec, 1);
-	fec_add_vmm3_hybrid(fec, 2);
-	fec_add_vmm3_hybrid(fec, 3);
-
-	fec_configure(fec);
-	fec_open(fec, FEC_DEFAULT_IP, FEC_DEFAULT_FEC_PORT);
-
-	fec_debug(fec, 1);
-
+	printf("### TEST MODE BEGIN ###\n");
 	printf("Resetting the FEC.\n");
 	fec_write_reset(fec);
 	sleep(1);
@@ -72,6 +123,57 @@ main(int argc, char *argv[])
 
 	fec_write_acq_off(fec);
 	fec_read_link_status(fec);
+	printf("### TEST MODE END ###\n");
+}
+
+void
+do_start_acq(struct Fec *fec)
+{
+	fec_write_acq_on(fec);
+}
+
+void
+do_stop_acq(struct Fec *fec)
+{
+	fec_write_acq_off(fec);
+}
+
+int
+main(int argc, char *argv[])
+{
+	struct Fec *fec;
+	struct Config *c;
+
+	printf("srscli\n");
+
+	c = parse_args(argc, argv);
+
+	fec = fec_new();
+
+	fec_add_vmm3_hybrid(fec, 0);
+	fec_add_vmm3_hybrid(fec, 1);
+	fec_add_vmm3_hybrid(fec, 2);
+	fec_add_vmm3_hybrid(fec, 3);
+
+	fec_configure(fec);
+	fec_open(fec);
+
+	fec_debug(fec, c->verbosity);
+
+	if (c->do_help) {
+		usage(argv[0]);
+	}
+	if (c->do_test_mode) {
+		do_test_mode(fec);
+	} else if (c->do_start_acq) {
+		do_start_acq(fec);
+	} else if (c->do_stop_acq) {
+		do_stop_acq(fec);
+	} else {
+		printf("No action requested. Exiting.\n");
+	}
+
+
 
 	/*
 	 * does not work with all FEC firmwares.
@@ -80,6 +182,8 @@ main(int argc, char *argv[])
 	/* fec_do_powercycle_hybrids(fec); */
 	fec_close(fec);
 	fec_destroy(fec);
+
+	free(c);
 
 	return 0;
 }

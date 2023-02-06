@@ -1,9 +1,15 @@
+#define _DEFAULT_SOURCE
+
+#include <arpa/inet.h>
 #include <assert.h>
-#include <stdlib.h>
+#include <netinet/in.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include <sys/socket.h>
+
 #include <udp_socket.h>
-#include <fec.h>
 #include <util.h>
+#include <fec.h>
 
 static const uint8_t hybrid_index_map_normal[] = {0, 1, 2, 3, 4, 5, 6, 7};
 static const uint8_t hybrid_index_map_swapped[] = {3, 2, 1, 0, 7, 6, 5, 4};
@@ -59,9 +65,11 @@ fec_configure(struct Fec *self)
 		self->hybrid_index_map = hybrid_index_map_swapped;
 	}
 	if (self->config.clock_source == 0) {
-		self->daq.port = 9000;
+		self->config.connection.daq_port =
+		    FEC_DEFAULT_RECEIVE_PORT_ESS;
 	} else {
-		self->daq.port = 6006;
+		self->config.connection.daq_port =
+		    FEC_DEFAULT_RECEIVE_PORT;
 	}
 	self->state = FEC_STATE_CONFIGURED;
 }
@@ -115,6 +123,7 @@ fec_default_config(struct Fec *self)
 {
 	self->config.debug_data_format = 0;
 	self->config.debug = 0;
+	self->config.break_on_pkt_cnt_mismatch = 1;
 	self->config.latency_reset = 47;
 	self->config.latency_data_max = 4087;
 	self->config.latency_data_error = 8;
@@ -131,11 +140,18 @@ fec_default_config(struct Fec *self)
 	self->config.tp_skew = 0;
 	self->config.tp_width = 0;
 	self->config.tp_polarity = 0;
+
+	self->config.connection.ip_addr = FEC_DEFAULT_IP;
+	self->config.connection.port = FEC_DEFAULT_FEC_PORT;
 }
 
 int
-fec_open(struct Fec *self, char *ip_addr, int port)
+fec_open(struct Fec *self)
 {
+	struct in_addr addr;
+	char *ip_addr = self->config.connection.ip_addr;
+	int port = self->config.connection.port;
+
 	if (self->state < FEC_STATE_CONFIGURED) {
 		printf("need to call fec_configure() before opening a "
 		    "connection.\n");
@@ -145,6 +161,15 @@ fec_open(struct Fec *self, char *ip_addr, int port)
 	    port);
 	udp_socket_config(self->socket, ip_addr, port);
 	udp_socket_init(self->socket);
+
+	if (inet_aton(ip_addr, &addr) == 0) {
+		printf("Invalid IP address '%s'\n", ip_addr);
+		abort();
+	} else {
+		printf("IP address 0x%08x\n", addr.s_addr);
+	}
+	self->id = htonl(addr.s_addr) & 0xff;
+	printf("FEC ID = %d\n", self->id);
 
 	return 0;
 }
@@ -481,6 +506,7 @@ fec_rw(struct Fec *self, int port,
     send_buffer_function prepare_send, recv_buffer_function handle_reply)
 {
 	ssize_t rc;
+	int ret = FEC_RW_SUCCESS;
 	struct UdpSocket *socket = self->socket;
 	uint32_t packet_count = self->packet_counter;
 
@@ -494,7 +520,7 @@ fec_rw(struct Fec *self, int port,
 		return FEC_RW_NO_DATA;
 	};
 
-	printf("fec_rw: packet_count = %u\n", packet_count);
+	/* printf("fec_rw: packet_count = %u\n", packet_count); */
 
 	while (udp_socket_has_pending_datagram(socket)) {
 		ssize_t size;
@@ -502,14 +528,21 @@ fec_rw(struct Fec *self, int port,
 		if (size < 0) {
 			abort();
 		} else {
+			uint32_t count;
 			rc = udp_socket_receive(socket, (size_t)size);
 			assert(rc > 0);
-			assert(ntohl(((uint32_t *)socket->recvbuf)[0]) ==
-			    packet_count);
+			count = ntohl(((uint32_t *)socket->recvbuf)[0]);
+			if (count != packet_count) {
+				ret = FEC_RW_PACKET_COUNT_MISMATCH;
+				if (self->config.break_on_pkt_cnt_mismatch) {
+					goto rw_finish;
+				}
+			}
 			handle_reply(self);
 		}
 	}
-	return 0;
+rw_finish:
+	return ret;
 }
 
 void

@@ -9,9 +9,11 @@
 #define FEC_DEFAULT_S6_PORT		6602
 #define FEC_DEFAULT_VMMASIC_PORT	6603
 #define FEC_DEFAULT_I2C_PORT		6604
-#define FEC_DEFAULT_DAQ_PORT		6606
+#define FEC_DEFAULT_DAQ_PORT		6606 /* correct ?? */
 
 #define FEC_DEFAULT_IP "10.0.0.2"
+#define FEC_DEFAULT_RECEIVE_PORT        6006
+#define FEC_DEFAULT_RECEIVE_PORT_ESS    9000
 
 #define FEC_N_HYBRIDS 8
 #define FEC_N_VMM 2
@@ -32,7 +34,12 @@
 
 #define FEC_ADC_CH_TEMPERATURE 2
 
+#define FEC_RW_SUCCESS 0
 #define FEC_RW_NO_DATA -1
+#define FEC_RW_PACKET_COUNT_MISMATCH -2
+
+#define FEC_DATA_END_OF_FRAME 0xfafafafa
+#define FEC_DATA_ID           0x564d3300
 
 #define HYBRID_ADC_TDO 0
 #define HYBRID_ADC_PDO 1
@@ -62,6 +69,13 @@ struct FecConfig
 	uint32_t ckbc;
 	uint32_t ckdt;
 	int debug;
+	int break_on_pkt_cnt_mismatch;
+	struct Connection
+	{
+		char *ip_addr;
+		int port;
+		int daq_port;
+	} connection;
 };
 
 enum FecState
@@ -80,6 +94,7 @@ struct Fec
 	uint8_t hybrid_index;
 	uint8_t vmm_index;
 	uint8_t adc_channel;
+	uint8_t id; /* made from lowest 8 bits of IP address */
 	const uint8_t *hybrid_index_map;
 	enum FecState state;
 	struct Hybrid
@@ -176,10 +191,6 @@ struct Fec
 		int reg;
 		uint32_t result;
 	} i2c;
-	struct Daq
-	{
-		int port;
-	} daq;
 };
 
 typedef void(*send_buffer_function)(struct Fec *);
@@ -187,7 +198,7 @@ typedef void(*recv_buffer_function)(struct Fec *);
 
 struct Fec *fec_new(void);
 void	fec_destroy(struct Fec *);
-int	fec_open(struct Fec *, char *, int);
+int	fec_open(struct Fec *);
 void	fec_close(struct Fec *);
 void	fec_configure(struct Fec *);
 void	fec_add_vmm3_hybrid(struct Fec *, int);
