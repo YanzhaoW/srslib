@@ -59,3 +59,13 @@ time_double()
 	clock_gettime(CLOCK_MONOTONIC, &tp);
 	return (double)tp.tv_sec + ((double)tp.tv_nsec) * 1e-9;
 }
+
+uint32_t
+gray2bin32(uint32_t val) {
+    val = val ^ (val >> 16);
+    val = val ^ (val >> 8);
+    val = val ^ (val >> 4);
+    val = val ^ (val >> 2);
+    val = val ^ (val >> 1);
+    return val;
+}

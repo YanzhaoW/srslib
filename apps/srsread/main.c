@@ -15,6 +15,8 @@ size_t handle_vmm3(struct Fec *);
 size_t handle_vmm3_srs(struct Fec *);
 int parse_header_vmm3_srs(struct Fec *, const struct VMM3SRSHeader *);
 int parse_hit_vmm3_srs(const struct VMM3SRSHit *, uint8_t);
+int parse_data_vmm3_srs(const struct VMM3SRSHit *, uint8_t);
+int parse_marker_vmm3_srs(const struct VMM3SRSHit *, uint8_t);
 void print_stats(void);
 
 struct Data
@@ -115,8 +117,14 @@ handle_vmm3_srs(struct Fec *fec)
 	p += VMM3SRSHeaderSize;
 	hit = (struct VMM3SRSHit *)p;
 
+	print_hex(socket->recvbuf,
+	    (socket->receivedlen>128) ? 128 : (size_t)socket->receivedlen,
+	    "handle_vmm3_srs", "<<<");
 	while ((const uint8_t *)hit < end) {
-		rc = parse_hit_vmm3_srs(hit, fec->id);
+		struct VMM3SRSHit hit_swapped;
+		hit_swapped.d32 = ntohl(hit->d32);
+		hit_swapped.d16 = ntohs(hit->d16);
+		rc = parse_data_vmm3_srs(&hit_swapped, fec->id);
 		if (rc == 1) {
 			n_hits++;
 		}
@@ -182,7 +190,8 @@ parse_header_vmm3_srs(struct Fec *fec, const struct VMM3SRSHeader *h) {
 
 	assert(size < 0xffffffff);
 	payload_size = size - VMM3SRSHeaderSize;
-	if ((size % VMM3SRSHitSize) != 0) {
+	printf("VMM3SRSHit size: %lu\n", sizeof(struct VMM3SRSHit));
+	if ((payload_size % VMM3SRSHitSize) != 0) {
 		printf("Invalid payload_size: %lu\n", payload_size);
 		goto parse_header_fail;
 	}
@@ -197,9 +206,53 @@ parse_header_fail:
 int
 parse_hit_vmm3_srs(const struct VMM3SRSHit *hit, uint8_t fec_id)
 {
-	(void)hit;
-	(void)fec_id;
+	uint8_t over_threshold = (hit->d16 >> 14) & 1;
+	uint8_t ch_no = (hit->d16 >> 8) & 0x3f;
+	uint8_t tdc = (uint8_t)(hit->d16 & 0xff);
+	uint8_t vmm_id = (hit->d32 >> 22) & 0x1f;
+	uint8_t trigger_offset = (uint8_t)((hit->d32 >> 27) & 0x1f);
+	uint16_t adc = (uint16_t)((hit->d32 >> 12) & 0x3ff);
+	uint32_t bcid = gray2bin32(hit->d32 & 0xfff);
+	uint16_t bc_counter_high = adc & 0xf;
+	uint16_t bc_counter_low = tdc;
+	uint16_t bc_counter = (bc_counter_high << 8) | bc_counter_low;
+	(void)bc_counter;
+
+	printf("  (data: %08x%04x) fec: %2u vmm: %2u ch: %2u bcid: %4u "
+	    "tdc: %3u adc: %4u "
+	    "(%s, trigger_offset: %2u)\n", hit->d32, hit->d16, fec_id, vmm_id,
+	    ch_no, bcid, tdc, adc,
+	    over_threshold ? "OVER_THR" : "--------", trigger_offset);
+
 	return 1;
+}
+
+int
+parse_marker_vmm3_srs(const struct VMM3SRSHit *hit, uint8_t fec_id)
+{
+	uint8_t vmm_id = (hit->d16 >> 10) & 0x1f;
+	uint64_t ts_lo = hit->d16 & 0x3ff;
+	uint64_t ts_hi = hit->d32;
+	uint64_t ts = (ts_hi << 10) | ts_lo;
+	uint8_t hybrid = vmm_id / 2;
+	uint8_t chip = vmm_id & 1;
+	(void)hybrid;
+	(void)chip;
+
+	printf("  (data: %08x%04x) fec: %2u vmm: %2u ts: %016lx\n",
+	    hit->d32, hit->d16, fec_id, vmm_id, ts);
+	return 0;
+}
+
+int
+parse_data_vmm3_srs(const struct VMM3SRSHit *hit, uint8_t fec_id)
+{
+	uint8_t data_flag = (hit->d16 >> 15) & 1;
+	if (data_flag) {
+		return parse_hit_vmm3_srs(hit, fec_id);
+	} else {
+		return parse_marker_vmm3_srs(hit, fec_id);
+	}
 }
 
 void
