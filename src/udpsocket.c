@@ -338,8 +338,12 @@ udp_socket_select(struct UdpSocket *self, int milliseconds)
 	} else if (rc == 0) {
 		return UDP_ERROR_SELECT_TIMED_OUT;
 	} else {
-		perror("select");
-		abort();
+		if (errno == EINTR) {
+			return EINTR;
+		} else {
+			perror("select");
+			abort();
+		}
 	}
 }
 

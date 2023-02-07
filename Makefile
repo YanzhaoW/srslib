@@ -19,7 +19,7 @@ endif
 #OBJECTS_EXTRA:=$(patsubst src_extra/%.c,$(BUILD_DIR)/%.o,$(SOURCES_EXTRA))
 #DEPS_EXTRA:=$(patsubst src_extra/%.c,$(BUILD_DIR)/%.d,$(SOURCES_EXTRA))
 
-STEM:=srscli
+STEM:=srs
 
 ifeq (,$(shell which git))
 	HAS_GIT=no

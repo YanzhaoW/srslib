@@ -3,6 +3,7 @@
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
+#include <util.h>
 
 struct Config
 {
@@ -14,38 +15,43 @@ struct Config
 };
 
 struct Config *parse_args(int , char **);
+void usage(const char *);
 void do_start_acq(struct Fec *);
 void do_stop_acq(struct Fec *);
 void do_test_mode(struct Fec *);
-void usage(const char *);
 
 struct Config *
 parse_args(int argc, char **argv)
 {
 	struct Config *c = (struct Config *)calloc(sizeof(struct Config), 1);
-	char *argp = NULL;
+	int idx = 0;
+	char *arg = NULL;
 
 	if (argc == 1) {
 		c->do_test_mode = 1;
 		goto parse_ok;
 	}
 
-	argp = argv[1];
-
-#define TEST_ARG(name) (strncmp(argp, name, strlen(name)) == 0)
-	while (argc--) {
-		if (TEST_ARG("--acq-on")) {
+	ARG_INIT;
+	while (argc > 0) {
+		if (TEST_ARG("--acq-on", "-o")) {
 			c->do_start_acq = 1;
 		}
-		else if (TEST_ARG("--acq-off")) {
+		else if (TEST_ARG("--acq-off", "-f")) {
 			c->do_stop_acq = 1;
 		}
-		else if (TEST_ARG("--help")) {
+		else if (TEST_ARG("--help", "-h")) {
 			c->do_help = 1;
 		}
-		else if (TEST_ARG("--verbose")) {
+		else if (TEST_ARG("--verbose", "-v")) {
 			c->verbosity += 1;
 		}
+		else {
+			printf("Unknown option '%s'\n\n", arg);
+			usage(argv[0]);
+			exit(-1);
+		}
+		ARG_ADV;
 	}
 
 parse_ok:
@@ -61,10 +67,10 @@ usage(const char *name)
 	printf("  Usage: %s [options]\n", name);
 	printf("\n\n");
 	printf("Options:\n");
-	printf("\t--acq-on    Start data acquisition.\n");
-	printf("\t--acq-off   Stop data acquisition.\n");
-	printf("\t--help      Show this help.\n");
-	printf("\t--verbose   Increase verbosity level.\n");
+	printf("\t-o --acq-on    Start data acquisition.\n");
+	printf("\t-f --acq-off   Stop data acquisition.\n");
+	printf("\t-h --help      Show this help.\n");
+	printf("\t-v --verbose   Increase verbosity level.\n");
 	printf("\n");
 }
 
