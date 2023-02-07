@@ -52,6 +52,10 @@ The shared library object is
 -h/--help:    Show help.
 ```
 
+### Custom configuration
+
+There is no support (yet) for reading a custom configuration from a config file. Instead, the user needs to modify the `fec_custom_config()` function in `apps/srscli/main.c`. Using configuration files is most probably the next feature on the roadmap.
+
 
 ## srsread - Reading data from a FEC
 
