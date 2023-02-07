@@ -17,13 +17,14 @@ static const uint8_t hybrid_index_map_swapped[] = {3, 2, 1, 0, 7, 6, 5, 4};
 struct Fec *
 fec_new()
 {
-	struct Fec *fec = (struct Fec *)malloc(sizeof(struct Fec));
+	struct Fec *fec = (struct Fec *)calloc(sizeof(struct Fec), 1);
 	size_t h, v;
 	assert(fec != NULL);
 
 	fec->socket = udp_socket_new();
 	fec->packet_counter = 0;
 	fec->channel_map = 0;
+	fec->n_hybrids = 0;
 	fec->hybrid_index = 0;
 	fec->vmm_index = 0;
 	fec->adc_channel = 0;
@@ -47,6 +48,7 @@ fec_add_vmm3_hybrid(struct Fec *self, int index)
 {
 	assert(index >= 0 && index < FEC_N_HYBRIDS);
 	self->channel_map |= (0x3 << index * 2);
+	self->n_hybrids++;
 }
 
 void
@@ -107,7 +109,7 @@ fec_vmm_default_config(struct Vmm *self)
 	for (i = 0; i < FEC_N_VMM_CHANNELS; ++i ) {
 		self->config.channel[i].sc = 0;
 		self->config.channel[i].sl = 0;
-		self->config.channel[i].st = 1;
+		self->config.channel[i].st = 0;
 		self->config.channel[i].sth = 0;
 		self->config.channel[i].sm = 0;
 		self->config.channel[i].smx = 0;
@@ -445,10 +447,10 @@ fec_prepare_i2c_rw(struct Fec *self, uint8_t rw)
 void
 fec_prepare_send_config(struct Fec *self)
 {
-	uint16_t hybrid_map = 0;
 	uint32_t *array;
 	size_t len;
-	hybrid_map = (uint16_t)(self->hybrid_index * 2 + self->vmm_index);
+	uint8_t hybrid_bit = (uint8_t)(self->hybrid_index * 2 + 1 - self->vmm_index);
+	uint16_t hybrid_map = (1 << hybrid_bit);
 
 	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
 	    hybrid_map);

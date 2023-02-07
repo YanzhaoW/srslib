@@ -91,6 +91,7 @@ struct Fec
 	struct FecConfig config;
 	uint32_t packet_counter;
 	uint8_t channel_map;
+	uint8_t n_hybrids;
 	uint8_t hybrid_index;
 	uint8_t vmm_index;
 	uint8_t adc_channel;

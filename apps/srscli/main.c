@@ -1,9 +1,11 @@
+#define _XOPEN_SOURCE 500
 #include <stdio.h>
 #include <fec.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
 #include <util.h>
+#include <unistd.h>
 
 struct Config
 {
@@ -19,6 +21,13 @@ void usage(const char *);
 void do_start_acq(struct Fec *);
 void do_stop_acq(struct Fec *);
 void do_test_mode(struct Fec *);
+void fec_custom_config(struct Fec *);
+
+void
+fec_custom_config(struct Fec *fec)
+{
+	fec->hybrid[0].vmm[0].config.channel[0].st = 0;
+}
 
 struct Config *
 parse_args(int argc, char **argv)
@@ -82,7 +91,7 @@ do_test_mode(struct Fec *fec)
 	printf("### TEST MODE BEGIN ###\n");
 	printf("Resetting the FEC.\n");
 	fec_write_reset(fec);
-	sleep(1);
+	usleep(300000);
 
 	fec_read_system_registers(fec);
 	fec_read_link_status(fec);
@@ -90,26 +99,27 @@ do_test_mode(struct Fec *fec)
 	fec_write_set_mask(fec);
 	fec_write_trigger_acq_constants(fec);
 
-	{
-		uint32_t fw;
-		fw = fec_do_read_hybrid_firmware(fec);
-		printf("hybrid firmware = 0x%08x\n", fw);
-	}
-	{
-		uint32_t pos;
-		pos = fec_do_read_geo_pos(fec);
-		printf("hybrid geo pos = 0x%08x\n", pos);
-	}
-
-	for (hybrid = 0; hybrid < 4; ++hybrid) {
-		uint32_t id[4];
+	for (hybrid = 0; hybrid < fec->n_hybrids; ++hybrid) {
 		fec->hybrid_index = hybrid;
-		fec_do_read_id_chip(fec, id);
-		printf("hybrid id [%d] = 0x%08x:%08x:%08x:%08x\n", hybrid,
-		    id[0], id[1], id[2], id[3]);
+		{
+			uint32_t fw;
+			fw = fec_do_read_hybrid_firmware(fec);
+			printf("hybrid[%d] firmware = 0x%08x\n", hybrid, fw);
+		}
+		{
+			uint32_t pos;
+			pos = fec_do_read_geo_pos(fec);
+			printf("hybrid[%d] geo pos = 0x%08x\n", hybrid, pos);
+		}
+		{
+			uint32_t id[4];
+			fec_do_read_id_chip(fec, id);
+			printf("hybrid[%d] id = 0x%08x:%08x:%08x:%08x\n",
+			    hybrid, id[0], id[1], id[2], id[3]);
+		}
+		fec_write_configure_hybrid(fec);
 	}
 
-	fec_write_configure_hybrid(fec);
 
 	for (hybrid = 0; hybrid < 4; ++hybrid) {
 		fec_debug(fec, 1);
@@ -125,7 +135,7 @@ do_test_mode(struct Fec *fec)
 	fec_write_acq_on(fec);
 	fec_read_link_status(fec);
 
-	sleep(1);
+	usleep(300000);
 
 	fec_write_acq_off(fec);
 	fec_read_link_status(fec);
@@ -155,16 +165,17 @@ main(int argc, char *argv[])
 	c = parse_args(argc, argv);
 
 	fec = fec_new();
+	fec_debug(fec, c->verbosity);
+	fec_configure(fec);
 
 	fec_add_vmm3_hybrid(fec, 0);
 	fec_add_vmm3_hybrid(fec, 1);
 	fec_add_vmm3_hybrid(fec, 2);
 	fec_add_vmm3_hybrid(fec, 3);
 
-	fec_configure(fec);
-	fec_open(fec);
+	fec_custom_config(fec);
 
-	fec_debug(fec, c->verbosity);
+	fec_open(fec);
 
 	if (c->do_help) {
 		usage(argv[0]);
@@ -178,8 +189,6 @@ main(int argc, char *argv[])
 	} else {
 		printf("No action requested. Exiting.\n");
 	}
-
-
 
 	/*
 	 * does not work with all FEC firmwares.
