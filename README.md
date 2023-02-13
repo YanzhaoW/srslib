@@ -1,4 +1,25 @@
-# srscli - A command line client + library for SRS FEC & VMM3
+# srscli - A library and command line client for SRS FEC & VMM3
+
+## Introduction
+
+### Why?
+
+- dependency free
+- simple, pure C (mostly C89)
+- maintainable, 2k lines of code
+- does not assume any specific (linux) environment
+- strict separation between library and application
+
+### Included
+
+- control/monitoring for SRS FEC & VMM3a hybrids
+- readout of data
+
+### Not included:
+
+- calibration routines
+- graphical user interface
+- sophisticated data transport
 
 
 ## Building
