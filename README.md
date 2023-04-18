@@ -1,4 +1,4 @@
-# srscli - A library and command line client for SRS FEC & VMM3
+# srslib - A library and command line client for SRS FEC & VMM3
 
 ## Introduction
 
@@ -25,8 +25,8 @@
 ## Building
 
 ```
-git clone https://github.com/bl0x/srscli
-cd srscli
+git clone https://github.com/bl0x/srslib
+cd srslib
 make
 ```
 
