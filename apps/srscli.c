@@ -1,12 +1,12 @@
 #define _XOPEN_SOURCE 500
 #include <stdio.h>
-#include <fec.h>
 #include <unistd.h>
 #include <string.h>
 #include <stdlib.h>
-#include <util.h>
 #include <unistd.h>
 
+#include <srs/fec.h>
+#include <srs/util.h>
 struct Config
 {
 	int do_start_acq;
