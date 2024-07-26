@@ -1,15 +1,15 @@
 #include <stdio.h>
 #include <assert.h>
-#include <srs/fec.h>
+#include <srs/c_impl/fec.h>
 #include <string.h>
 #include <stdlib.h>
 #include <signal.h>
 
-#include <srs/vmm3_srs_hit.h>
-#include <srs/vmm3_srs_header.h>
-#include <srs/vmm3_common_data.h>
-#include <srs/udp_socket.h>
-#include <srs/util.h>
+#include <srs/c_impl/vmm3_srs_hit.h>
+#include <srs/c_impl/vmm3_srs_header.h>
+#include <srs/c_impl/vmm3_common_data.h>
+#include <srs/c_impl/udp_socket.h>
+#include <srs/c_impl/util.h>
 
 struct Config *parse_args(int , char **);
 void usage(const char *);

@@ -1,16 +1,27 @@
-add_library(srslib SHARED)
+add_subdirectory(c_impl)
 
-target_sources(srslib PRIVATE fec.c udpsocket.c util.c)
+add_library(srs_cpp SHARED)
+
+find_package(asio REQUIRED)
+find_package(fmt REQUIRED)
+find_package(cista REQUIRED)
+
+target_sources(srs_cpp PRIVATE Control.cpp)
 
 target_sources(
-    srslib
+    srs_cpp
     PRIVATE FILE_SET
             HEADERS
+            BASE_DIRS
+            ${CMAKE_CURRENT_SOURCE_DIR}
             FILES
-            fec.h
-            udp_socket.h
-            util.h
-            vmm3_common_data.h
-            vmm3_srs_header.h
-            vmm3_srs_hit.h)
-target_include_directories(srslib PUBLIC ${CMAKE_SOURCE_DIR})
+            utils/Serializer.hpp
+            Control.hpp)
+
+target_include_directories(srs_cpp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices)
+
+target_link_libraries(
+    srs_cpp
+    PUBLIC asio::asio
+    PRIVATE fmt::fmt cista::cista
+    INTERFACE srs_c)

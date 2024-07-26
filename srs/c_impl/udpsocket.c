@@ -215,6 +215,7 @@ udp_socket_send_to_port(struct UdpSocket *self, int port)
 		abort();
 	}
 
+
 	udp_sendbuf_reset(self);
 
 	return rc;

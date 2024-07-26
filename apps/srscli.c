@@ -5,8 +5,8 @@
 #include <stdlib.h>
 #include <unistd.h>
 
-#include <srs/fec.h>
-#include <srs/util.h>
+#include <srs/c_impl/fec.h>
+#include <srs/c_impl/util.h>
 struct Config
 {
 	int do_start_acq;
@@ -170,8 +170,8 @@ main(int argc, char *argv[])
 
 	fec_add_vmm3_hybrid(fec, 0);
 	fec_add_vmm3_hybrid(fec, 1);
-	fec_add_vmm3_hybrid(fec, 2);
-	fec_add_vmm3_hybrid(fec, 3);
+	// fec_add_vmm3_hybrid(fec, 2);
+	// fec_add_vmm3_hybrid(fec, 3);
 
 	fec_custom_config(fec);
 

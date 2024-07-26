@@ -1,0 +1,9 @@
+[requires]
+asio/1.30.2
+fmt/11.0.1
+cista/0.15
+[generators]
+CMakeDeps
+CMakeToolchain
+[layout]
+cmake_layout
