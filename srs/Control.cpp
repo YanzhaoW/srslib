@@ -67,25 +67,26 @@ namespace srs
                                     {
                                         if (data_size > 0)
                                         {
+                                            fmt::print("waiting....\n");
                                             std::this_thread::sleep_for(std::chrono::seconds(2));
                                             fmt::print("Sending data size: {}\n", data_size);
-                                            host_socket_.async_receive(
-                                                asio::buffer(read_message_buffer_),
-                                                [this](std::error_code err, std::size_t data_size)
-                                                {
-                                                    fmt::print(
-                                                        "Read data size: {}, with message: {}",
-                                                        data_size,
-                                                        std::string_view(read_message_buffer_.data(), data_size));
-                                                });
+                                            // host_socket_.async_receive(
+                                            //     asio::buffer(read_message_buffer_),
+                                            //     [this](std::error_code err, std::size_t data_size)
+                                            //     {
+                                            //         fmt::print(
+                                            //             "Read data size: {}, with message: {}",
+                                            //             data_size,
+                                            //             std::string_view(read_message_buffer_.data(), data_size));
+                                            //     });
                                         }
                                     });
         };
         // asio::post(asio::bind_executor(strand, send_action));
-        send_action();
-        send_action();
-        // asio::post(strand, send_action);
-        // asio::post(strand, send_action);
+        // send_action();
+        // send_action();
+        asio::post(strand, send_action);
+        asio::post(strand, send_action);
         // asio::post(send_action);
 
         io_context_.run();

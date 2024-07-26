@@ -190,8 +190,6 @@ fec_prepare_send_buffer(struct Fec *self, uint8_t cmd, uint8_t type,
 	struct UdpSocket *socket = self->socket;
 	uint32_t counter = self->packet_counter++ + 0x80000000;
 
-    printf("Counter: %d\n", counter);
-
 	/*
 	 * command: 0xaa = write, 0xbb = read
 	 * command type: 0xaa = write_pairs or read_list, 
@@ -533,6 +531,7 @@ fec_rw(struct Fec *self, int port,
 			abort();
 		} else {
 			uint32_t count;
+            printf("fec_rw: package read: %u\n", count);
 			rc = udp_socket_receive(socket, (size_t)size);
 			assert(rc > 0);
 			count = ntohl(((uint32_t *)socket->recvbuf)[0]);
