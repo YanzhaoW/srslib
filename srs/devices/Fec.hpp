@@ -61,12 +61,16 @@ namespace srs
             DeviceConnection connection;
         };
 
-        struct Device
+        class Devices
         {
+          public:
+            Devices() = default;
+
+          private:
             std::unique_ptr<UDPSocket> socket;
             uint32_t packet_counter;
             uint8_t channel_map;
-            uint8_t n_hybrids;
+            // uint8_t n_hybrids;
             uint8_t hybrid_index;
             uint8_t vmm_index;
             uint8_t adc_channel;

@@ -11,7 +11,8 @@
 #define FEC_DEFAULT_I2C_PORT		6604
 #define FEC_DEFAULT_DAQ_PORT		6606 /* correct ?? */
 
-#define FEC_DEFAULT_IP "10.0.0.2"
+#define FEC_DEFAULT_IP "10.20.4.17"
+// #define FEC_DEFAULT_IP "10.0.0.2"
 #define FEC_DEFAULT_RECEIVE_PORT        6006
 #define FEC_DEFAULT_RECEIVE_PORT_ESS    9000
 

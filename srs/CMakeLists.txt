@@ -16,9 +16,11 @@ target_sources(
             ${CMAKE_CURRENT_SOURCE_DIR}
             FILES
             utils/Serializer.hpp
+            devices/Fec.hpp
+            devices/VmmDevice.hpp
             Control.hpp)
 
-target_include_directories(srs_cpp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices)
+target_include_directories(srs_cpp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices PUBLIC ${CMAKE_SOURCE_DIR})
 
 target_link_libraries(
     srs_cpp

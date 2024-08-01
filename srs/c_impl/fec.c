@@ -188,6 +188,7 @@ fec_prepare_send_buffer(struct Fec *self, uint8_t cmd, uint8_t type,
     uint16_t address)
 {
 	struct UdpSocket *socket = self->socket;
+    printf("packet counter: %d\n", self->packet_counter);
 	uint32_t counter = self->packet_counter++ + 0x80000000;
 
 	/*

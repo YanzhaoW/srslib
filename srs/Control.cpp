@@ -1,7 +1,7 @@
 #include "Control.hpp"
 #include "utils/Serializer.hpp"
+#include <fmt/ranges.h>
 #include <string_view>
-#include <thread>
 
 namespace srs
 {
@@ -22,7 +22,6 @@ namespace srs
 
     struct CommandAcqOn
     {
-        uint32_t counter = 0x80000000;
         uint16_t zero_0 = 0U;
         uint16_t address = 0x000f;
         uint8_t cmd = 0xaa;
@@ -33,7 +32,6 @@ namespace srs
 
     struct CommandAcqOff
     {
-        uint32_t counter = 0x80000000;
         uint16_t zero_0 = 0U;
         uint16_t address = 0x000f;
         uint8_t cmd = 0xaa;
@@ -42,9 +40,10 @@ namespace srs
         std::array<uint32_t, 3> data{ 0U, 15U, 0U };
     };
 
+    void Control::configure_fec() {}
+
     struct CommandReset
     {
-        uint32_t counter = 0x80000000;
         uint16_t zero_0 = 0U;
         uint16_t address = 0U;
         uint8_t cmd = 0xaa;
@@ -59,35 +58,25 @@ namespace srs
 
         const auto send_data = CommandAcqOn{};
 
-        auto send_action = [this, &send_data]()
+        auto send_action = [this, &send_data]() -> asio::awaitable<void>
         {
             fmt::print("Sending data\n");
-            host_socket_.async_send(serialize(send_data, output_buffer_),
-                                    [this](std::error_code err, std::size_t data_size)
-                                    {
-                                        if (data_size > 0)
-                                        {
-                                            fmt::print("waiting....\n");
-                                            std::this_thread::sleep_for(std::chrono::seconds(2));
-                                            fmt::print("Sending data size: {}\n", data_size);
-                                            // host_socket_.async_receive(
-                                            //     asio::buffer(read_message_buffer_),
-                                            //     [this](std::error_code err, std::size_t data_size)
-                                            //     {
-                                            //         fmt::print(
-                                            //             "Read data size: {}, with message: {}",
-                                            //             data_size,
-                                            //             std::string_view(read_message_buffer_.data(), data_size));
-                                            //     });
-                                        }
-                                    });
+            uint32_t counter = 0x80000000;
+            auto data_size =
+                co_await host_socket_.async_send(serialize(output_buffer_, counter, send_data), asio::use_awaitable);
+            fmt::print("waiting....\n");
+            fmt::print("vector: {:0x}", fmt::join(output_buffer_, ", "));
+            fmt::print("Sending data size: {}\n", data_size);
+
+            auto receive_data_size =
+                co_await host_socket_.async_receive(asio::buffer(read_message_buffer_), asio::use_awaitable);
+            fmt::print("Received data size: {} from {:?}",
+                       receive_data_size,
+                       std::string_view{ read_message_buffer_.data(), receive_data_size });
         };
-        // asio::post(asio::bind_executor(strand, send_action));
-        // send_action();
-        // send_action();
-        asio::post(strand, send_action);
-        asio::post(strand, send_action);
-        // asio::post(send_action);
+
+        co_spawn(io_context_, send_action(), asio::detached);
+        fmt::print("Comming here\n");
 
         io_context_.run();
     }
