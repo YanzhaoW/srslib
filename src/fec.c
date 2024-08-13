@@ -47,7 +47,7 @@ void
 fec_add_vmm3_hybrid(struct Fec *self, int index)
 {
 	assert(index >= 0 && index < FEC_N_HYBRIDS);
-	self->channel_map |= (0x3 << index * 2);
+	self->channel_map |= (uint8_t)(0x3 << index * 2);
 	self->n_hybrids++;
 }
 
@@ -257,7 +257,7 @@ void
 fec_prepare_configure_hybrid(struct Fec *self)
 {
 	size_t len;
-	uint16_t hybrid_map = (1 << self->hybrid_index);
+	uint16_t hybrid_map = (uint16_t)(1 << self->hybrid_index);
 	uint32_t *array;
 
 	if (self->config.clock_source == 3) {
@@ -357,15 +357,15 @@ fec_prepare_i2c_read_adc(struct Fec *self)
 {
 	size_t len = 3;
 	uint8_t adc_channel = self->adc_channel;
-	uint8_t i2c_address = 0x48 + (self->vmm_index % 2);
+	uint8_t i2c_address = (uint8_t)(0x48 + (self->vmm_index % 2));
 	uint8_t hybrid_bit = self->hybrid_index_map[self->hybrid_index];
-	uint8_t hybrid_map = (1 << hybrid_bit);
+	uint8_t hybrid_map = (uint8_t)(1 << hybrid_bit);
 	uint16_t address;
 
 	uint8_t rw[] = {I2C_WRITE, I2C_WRITE, I2C_READ};
 
-	i2c_address = (i2c_address << 1) | rw[self->i2c.sequence];
-	address = ((uint16_t)hybrid_map) << 8 | i2c_address;
+	i2c_address = (uint8_t)((i2c_address << 1) | rw[self->i2c.sequence]);
+	address = (uint16_t)(((uint16_t)hybrid_map) << 8 | i2c_address);
 	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
 	    address);
 
@@ -430,12 +430,12 @@ fec_prepare_i2c_rw(struct Fec *self, uint8_t rw)
 	size_t len = 3;
 	uint8_t i2c_address;
 	uint8_t hybrid_bit = self->hybrid_index_map[self->hybrid_index];
-	uint8_t hybrid_map = (1 << hybrid_bit);
+	uint8_t hybrid_map = (uint8_t)(1 << hybrid_bit);
 	uint16_t address;
 	uint32_t *array;
 
-	i2c_address = (self->i2c.address << 1) | rw;
-	address = ((uint16_t)hybrid_map) << 8 | i2c_address;
+	i2c_address = (uint8_t)((self->i2c.address << 1) | rw);
+	address = (uint16_t)(((uint16_t)hybrid_map) << 8 | i2c_address);
 	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
 	    address);
 
@@ -450,7 +450,7 @@ fec_prepare_send_config(struct Fec *self)
 	uint32_t *array;
 	size_t len;
 	uint8_t hybrid_bit = (uint8_t)(self->hybrid_index * 2 + 1 - self->vmm_index);
-	uint16_t hybrid_map = (1 << hybrid_bit);
+	uint16_t hybrid_map = (uint16_t)(1 << hybrid_bit);
 
 	fec_prepare_send_buffer(self, FEC_CMD_WRITE, FEC_CMD_TYPE_PAIRS,
 	    hybrid_map);
@@ -703,8 +703,9 @@ fec_do_read_id_chip(struct Fec *self, uint32_t *id /* fixed len 4 */)
 	uint8_t n;
 	for (n = 1; n <= 4; ++n) {
 		uint32_t data;
+		uint8_t length = (uint8_t)(n * 4);
 		fec_i2c_write(self, 88, 0x80, 0);
-		data = fec_i2c_read32(self, 88, 0, n * 4);
+		data = fec_i2c_read32(self, 88, 0, length);
 		/* printf("data = %08x\n", data); */
 		id[n - 1] = data;
 	}
@@ -764,21 +765,21 @@ fec_global_registers2(struct Fec *self, uint8_t hybrid, uint8_t vmm,
 
 	/* magic number of BCID, 31 */
 	array[idx++] = FEC_REG_GLOBAL2_START;
-	array[idx++] = (c->nskipm_i << 31);
+	array[idx++] = (uint32_t)(c->nskipm_i << 31);
 
 	array[idx++] = FEC_REG_GLOBAL2_START + 1;
-	array[idx++] = (c->sL0cktest & 1)
-	    | ((c->sL0dckinv & 1) << 1)
-	    | ((c->sL0ckinv & 1) << 2)
-	    | ((c->sL0ena & 1) << 3)
-	    | ((c->truncate & 0x3f) << 4)
-	    | ((c->nskip & 0x7f) << 10)
-	    | ((c->window & 0x7) << 17)
-	    | ((c->rollover & 0xfff) << 20);
+	array[idx++] = (uint32_t)(c->sL0cktest & 1)
+	    | ((unsigned int)(c->sL0dckinv & 1) << 1)
+	    | ((unsigned int)(c->sL0ckinv & 1) << 2)
+	    | ((unsigned int)(c->sL0ena & 1) << 3)
+	    | ((unsigned int)(c->truncate & 0x3f) << 4)
+	    | ((unsigned int)(c->nskip & 0x7f) << 10)
+	    | ((unsigned int)(c->window & 0x7) << 17)
+	    | ((unsigned int)(c->rollover & 0xfff) << 20);
 
 	array[idx++] = FEC_REG_GLOBAL2_START + 2;
-	array[idx++] = (c->l0offset & 0xfff)
-	    | ((c->offset & 0xfff) << 12);
+	array[idx++] = (uint32_t)(c->l0offset & 0xfff)
+	    | ((unsigned int)(c->offset & 0xfff) << 12);
 
 	*len = size;
 	return array;
@@ -804,65 +805,65 @@ fec_global_registers(struct Fec *self, uint8_t hybrid, uint8_t vmm,
 	}
 
 	/* SPI 0 */
-	array[1] = ((0 & 0xf) << 28)
-	    | ((c->slvs & 1) << 27)
-	    | ((c->s32 & 1) << 26)
-	    | ((c->stcr & 1) << 25)
-	    | ((c->ssart & 1) << 24)
-	    | ((c->srec & 1) << 23)
-	    | ((c->stlc & 1) << 22)
-	    | ((c->sbip & 1) << 21)
-	    | ((c->srat & 1) << 20)
-	    | ((c->sfrst & 1) << 19)
-	    | ((c->slvsbc & 1) << 18)
-	    | ((c->slvstp & 1) << 17)
-	    | ((c->slvstk & 1) << 16)
-	    | ((c->slvsdt & 1) << 15)
-	    | ((c->slvsart & 1) << 14)
-	    | ((c->slvstki & 1) << 13)
-	    | ((c->slvsena & 1) << 12)
-	    | ((c->slvs6b & 1) << 11)
-	    | ((c->sL0enaV & 1) << 10)
-	    | ((0 & 0xff) << 2)
-	    | ((c->reset1 & 1) << 1)
-	    | ((c->reset2 & 1) << 0);
+	array[1] = (uint32_t)((0 & 0xf) << 28)
+	    | ((unsigned int)(c->slvs & 1) << 27)
+	    | ((unsigned int)(c->s32 & 1) << 26)
+	    | ((unsigned int)(c->stcr & 1) << 25)
+	    | ((unsigned int)(c->ssart & 1) << 24)
+	    | ((unsigned int)(c->srec & 1) << 23)
+	    | ((unsigned int)(c->stlc & 1) << 22)
+	    | ((unsigned int)(c->sbip & 1) << 21)
+	    | ((unsigned int)(c->srat & 1) << 20)
+	    | ((unsigned int)(c->sfrst & 1) << 19)
+	    | ((unsigned int)(c->slvsbc & 1) << 18)
+	    | ((unsigned int)(c->slvstp & 1) << 17)
+	    | ((unsigned int)(c->slvstk & 1) << 16)
+	    | ((unsigned int)(c->slvsdt & 1) << 15)
+	    | ((unsigned int)(c->slvsart & 1) << 14)
+	    | ((unsigned int)(c->slvstki & 1) << 13)
+	    | ((unsigned int)(c->slvsena & 1) << 12)
+	    | ((unsigned int)(c->slvs6b & 1) << 11)
+	    | ((unsigned int)(c->sL0enaV & 1) << 10)
+	    | ((unsigned int)(0 & 0xff) << 2)
+	    | ((unsigned int)(c->reset1 & 1) << 1)
+	    | ((unsigned int)(c->reset2 & 1) << 0);
 
 	/* SPI 1 */
-	array[3] = ((c->sdt & 0x3f) << 26)
-	    | ((c->sdp10 & 0x3ff) << 16)
-	    | ((c->sc10b & 0x3) << 14)
-	    | ((c->sc8b & 0x3) << 12)
-	    | ((c->sc6b & 0x7) << 9)
-	    | ((c->s8b & 1) << 8)
-	    | ((c->s6b & 1) << 7)
-	    | ((c->s10b & 1) << 6)
-	    | ((c->sdcks & 1) << 5)
-	    | ((c->sdcka & 1) << 4)
-	    | ((c->sdck6b & 1) << 3)
-	    | ((c->sdrv & 1) << 2)
-	    | ((c->stpp & 1) << 1);
+	array[3] = (uint32_t)((c->sdt & 0x3f) << 26)
+	    | ((unsigned int)(c->sdp10 & 0x3ff) << 16)
+	    | ((unsigned int)(c->sc10b & 0x3) << 14)
+	    | ((unsigned int)(c->sc8b & 0x3) << 12)
+	    | ((unsigned int)(c->sc6b & 0x7) << 9)
+	    | ((unsigned int)(c->s8b & 1) << 8)
+	    | ((unsigned int)(c->s6b & 1) << 7)
+	    | ((unsigned int)(c->s10b & 1) << 6)
+	    | ((unsigned int)(c->sdcks & 1) << 5)
+	    | ((unsigned int)(c->sdcka & 1) << 4)
+	    | ((unsigned int)(c->sdck6b & 1) << 3)
+	    | ((unsigned int)(c->sdrv & 1) << 2)
+	    | ((unsigned int)(c->stpp & 1) << 1);
 
 	/* SPI 2 */
-	array[5] = ((c->sp & 1) << 31)
-	    | ((c->sdp &   1) << 30)
-	    | ((c->sbmx &  1) << 29)
-	    | ((c->sbft &  1) << 28)
-	    | ((c->sbfp &  1) << 27)
-	    | ((c->sbfm &  1) << 26)
-	    | ((c->slg &   1) << 25)
-	    | ((c->sm5_sm0 & 0x3f) << 19)
-	    | ((c->scmx &  1) << 18)
-	    | ((c->sfa &   1) << 17)
-	    | ((c->sfam &  1) << 16)
-	    | ((c->st &  0x3) << 14)
-	    | ((c->sfm &   1) << 13)
-	    | ((c->sg &  0x7) << 10)
-	    | ((c->sng &   1) << 9)
-	    | ((c->stot &  1) << 8)
-	    | ((c->sttt &  1) << 7)
-	    | ((c->ssh &   1) << 6)
-	    | ((c->stc & 0x3) << 4)
-	    | (((c->sdt >> 6) & 0xf) << 0);
+	array[5] = (uint32_t)((c->sp & 1) << 31)
+	    | ((unsigned int)(c->sdp &   1) << 30)
+	    | ((unsigned int)(c->sbmx &  1) << 29)
+	    | ((unsigned int)(c->sbft &  1) << 28)
+	    | ((unsigned int)(c->sbfp &  1) << 27)
+	    | ((unsigned int)(c->sbfm &  1) << 26)
+	    | ((unsigned int)(c->slg &   1) << 25)
+	    | ((unsigned int)(c->sm5_sm0 & 0x3f) << 19)
+	    | ((unsigned int)(c->scmx &  1) << 18)
+	    | ((unsigned int)(c->sfa &   1) << 17)
+	    | ((unsigned int)(c->sfam &  1) << 16)
+	    | ((unsigned int)(c->st &  0x3) << 14)
+	    | ((unsigned int)(c->sfm &   1) << 13)
+	    | ((unsigned int)(c->sg &  0x7) << 10)
+	    | ((unsigned int)(c->sng &   1) << 9)
+	    | ((unsigned int)(c->stot &  1) << 8)
+	    | ((unsigned int)(c->sttt &  1) << 7)
+	    | ((unsigned int)(c->ssh &   1) << 6)
+	    | ((unsigned int)(c->stc & 0x3) << 4)
+	    | (((unsigned int)(c->sdt >> 6) & 0xf) << 0);
 
 	*len = size;
 	return array;
@@ -887,16 +888,16 @@ fec_channel_registers(struct Fec *self, uint8_t hybrid, uint8_t vmm,
 	for (i = 0; i < n_regs; ++i) {
 		array[i * 2] = (uint32_t)(FEC_REG_CHANNEL_START + i);
 		/* TODO: need to reverse bit order here? */
-		array[i * 2 + 1] = ((c->channel[i].sc & 1) << 23)
-		    | ((c->channel[i].sl & 1) << 22)
-		    | ((c->channel[i].st & 1) << 21)
-		    | ((c->channel[i].sth & 1) << 20)
-		    | ((c->channel[i].sm & 1) << 19)
-		    | ((c->channel[i].smx & 1) << 18)
-		    | ((c->channel[i].sd & 0x1f) << 13)
-		    | ((c->channel[i].sz10b & 0x1f) << 8)
-		    | ((c->channel[i].sz08b & 0xf) << 4)
-		    | ((c->channel[i].sz06b & 0x7) << 1);
+		array[i * 2 + 1] = (uint32_t)((c->channel[i].sc & 1) << 23)
+		    | ((unsigned int)(c->channel[i].sl & 1) << 22)
+		    | ((unsigned int)(c->channel[i].st & 1) << 21)
+		    | ((unsigned int)(c->channel[i].sth & 1) << 20)
+		    | ((unsigned int)(c->channel[i].sm & 1) << 19)
+		    | ((unsigned int)(c->channel[i].smx & 1) << 18)
+		    | ((unsigned int)(c->channel[i].sd & 0x1f) << 13)
+		    | ((unsigned int)(c->channel[i].sz10b & 0x1f) << 8)
+		    | ((unsigned int)(c->channel[i].sz08b & 0xf) << 4)
+		    | ((unsigned int)(c->channel[i].sz06b & 0x7) << 1);
 
 	}
 

@@ -302,7 +302,7 @@ parse_hit_vmm3_srs(struct Fec *fec, const struct VMM3SRSHit *hit)
 	uint32_t bcid = gray2bin32(hit->d32 & 0xfff);
 	uint16_t bc_counter_high = adc & 0xf;
 	uint16_t bc_counter_low = tdc;
-	uint16_t bc_counter = (bc_counter_high << 8) | bc_counter_low;
+	uint16_t bc_counter = (uint16_t)(bc_counter_high << 8) | (uint16_t)bc_counter_low;
 	(void)bc_counter;
 	(void)over_threshold;
 	(void)ch_no;
