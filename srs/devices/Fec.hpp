@@ -39,7 +39,7 @@ namespace srs
             configured
         };
 
-        struct DeviceConfig
+        struct Config
         {
             uint8_t clock_source{};
             uint32_t debug_data_format{};
@@ -78,7 +78,7 @@ namespace srs
             std::vector<uint8_t> hybrid_index_map;
             State state;
             std::vector<HybridDevice> hybrid;
-            DeviceConfig config;
+            Config config;
             I2CDevice i2c;
         };
     }; // namespace fec

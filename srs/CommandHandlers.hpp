@@ -15,23 +15,29 @@ namespace srs
 
     enum class Commands
     {
-        system_registers,
-        reset,
-        powercycle_hybrids,
-        link_status,
-        trigger_acq_constants,
         acq_on,
         acq_off,
-        set_mask,
         configure_hybrid,
-        send_config,
+        link_status,
+        powercycle_hybrids,
         read_adc,
+        reset,
+        send_config,
+        set_mask,
+        system_registers,
+        trigger_acq_constants,
     };
 
     enum class MessageMode
     {
         read,
         write
+    };
+
+    struct DeviceIndex
+    {
+        uint8_t hybrid{};
+        uint8_t vmm{};
     };
 
     struct MessageHeader
@@ -48,7 +54,7 @@ namespace srs
 
     class Control;
 
-    using CommandsHandlerMap = std::map<Commands, std::function<void(Control&)>>;
+    using CommandsHandlerMap = std::map<Commands, std::function<void(Control&, DeviceIndex)>>;
     extern const CommandsHandlerMap commands_handler_map;
 
 } // namespace srs
