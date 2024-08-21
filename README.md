@@ -25,23 +25,18 @@
 ## Building
 
 ```
-git clone https://github.com/bl0x/srslib
+git clone -b dev https://github.com/YanzhaoW/srslib.git
 cd srslib
-make
+git submodule update --init
+cmake --preset default .
+cmake --build ./build -- -j[nproc]
 ```
 
 The executable programs are compiled in the build directory:
 
 ```
-./build_*/bin/
+./build/apps/
 ```
-
-The shared library object is
-
-```
-./build_*/libsrs.so
-```
-
 
 ## srscli - The control program
 
