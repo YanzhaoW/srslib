@@ -11,7 +11,8 @@ namespace srs
     constexpr auto CMD_TYPE = uint8_t{ 0xaa };
     constexpr auto WRITE_CMD = uint8_t{ 0xaa };
     constexpr auto READ_CMD = uint8_t{ 0xbb };
-    constexpr auto I2C_ADDRESS = uint8_t{ 0x42 }; /* device address = 0x21 */
+    constexpr auto I2C_ADDRESS = uint16_t{ 0x0042 }; /* device address = 0x21 */
+    constexpr auto NULL_ADDRESS = uint16_t{ 0x000f }; /* device address = 0x21 */
 
     enum class Commands
     {

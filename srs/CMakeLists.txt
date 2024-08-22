@@ -6,7 +6,7 @@ find_package(asio REQUIRED)
 find_package(fmt REQUIRED)
 find_package(cista REQUIRED)
 
-target_sources(srs_cpp PRIVATE Control.cpp)
+target_sources(srs_cpp PRIVATE Control.cpp CommandHandlers.cpp)
 
 target_sources(
     srs_cpp
@@ -18,9 +18,14 @@ target_sources(
             utils/Serializer.hpp
             devices/Fec.hpp
             devices/VmmDevice.hpp
-            Control.hpp)
+            Control.hpp
+            CommandHandlers.hpp
+            CommonDefitions.hpp)
 
-target_include_directories(srs_cpp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices PUBLIC ${CMAKE_SOURCE_DIR})
+target_include_directories(
+    srs_cpp
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices
+    PUBLIC ${CMAKE_SOURCE_DIR})
 
 target_link_libraries(
     srs_cpp

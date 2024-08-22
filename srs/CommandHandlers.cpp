@@ -5,6 +5,8 @@
 #include <srs/CommandHandlers.hpp>
 #include <srs/Control.hpp>
 #include <vector>
+#include <srs/CommonDefitions.hpp>
+#include <fmt/format.h>
 
 namespace srs
 {
@@ -12,44 +14,42 @@ namespace srs
     constexpr auto magic_data_size = 16;
     constexpr auto INDEX_MAP_BIT_SIZE = 16;
 
-    using EntryType = uint32_t;
-
     template <typename T>
     concept EntryTypeExact = std::same_as<T, EntryType>;
 
     void acq_on_handler(Control& control, DeviceIndex /*indices*/)
     {
-        const auto data = std::array<EntryType, 3>{ 0, 15, 1 };
-        control.register_command<MessageMode::write>(data);
+        const auto data = std::vector<EntryType>{ 0, 15, 1 };
+        control.register_command<MessageMode::write>(data, NULL_ADDRESS);
     }
 
     void acq_off_handler(Control& control, DeviceIndex /*indices*/)
     {
-        const auto data = std::array<EntryType, 3>{ 0, 15, 0 };
-        control.register_command<MessageMode::write>(data);
+        const auto data = std::vector<EntryType>{ 0, 15, 0 };
+        control.register_command<MessageMode::write>(data, NULL_ADDRESS);
     }
 
     void reset_handler(Control& control, DeviceIndex /*indices*/)
     {
-        const auto data = std::array<EntryType, 3>{ 0, 0xffffffff, 0xffff0001 };
-        control.register_command<MessageMode::write>(data, 0);
+        const auto data = std::vector<EntryType>{ 0, 0xffffffff, 0xffff0001 };
+        control.register_command<MessageMode::write>(data, NULL_ADDRESS);
     }
 
     void powercycle_hybrids_handler(Control& control, DeviceIndex /*indices*/)
     {
-        const auto data = std::array<EntryType, 3>{ 0, 0, 0x37f };
+        const auto data = std::vector<EntryType>{ 0, 0, 0x37f };
         control.register_command<MessageMode::write>(data, I2C_ADDRESS);
     }
 
     void set_mask_handler(Control& control, DeviceIndex /*indices*/)
     {
-        const auto data = std::array<EntryType, 3>{ 0, 8, control.get_channel_address() };
+        const auto data = std::vector<EntryType>{ 0, 8, control.get_channel_address() };
         control.register_command<MessageMode::write>(data);
     }
 
     void link_status_handler(Control& control, DeviceIndex /*indices*/)
     {
-        const auto data = std::array<EntryType, 2>{ 0, 16 };
+        const auto data = std::vector<EntryType>{ 0, 16 };
         control.register_command<MessageMode::write>(data);
     }
 
@@ -69,8 +69,7 @@ namespace srs
 
     void system_register_handler(Control& control, DeviceIndex /*indices*/)
     {
-        auto data = std::array<EntryType, magic_data_size + 1>{};
-        data.front() = 0;
+        auto data = make_reserved_vector(magic_data_size + 1);
         std::iota(data.begin() + 1, data.end(), 0);
 
         control.register_command<MessageMode::read>(data);

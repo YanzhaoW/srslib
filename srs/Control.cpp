@@ -52,20 +52,34 @@ namespace srs
         std::array<uint32_t, 3> data{ 0, 0xffffffff, 0xffff0001 };
     };
 
+    void Control::encode_write_message(const std::vector<EntryType>& data, uint16_t address)
+    {
+        uint32_t counter = 0x80000000;
+        serialize(output_buffer_,
+                  counter,
+                  ZERO_UINT16_PADDING,
+                  address,
+                  WRITE_COMMAND_BITS,
+                  DEFAULT_TYPE_BITS,
+                  COMMAND_LENGTH_BITS);
+        for (const auto entry : data)
+        {
+            serialize(output_buffer_, entry);
+        }
+    }
+
     void Control::switch_on()
     {
-        auto strand = asio::make_strand(io_context_);
-
-        const auto send_data = CommandAcqOn{};
-
-        auto send_action = [this, &send_data]() -> asio::awaitable<void>
+        commands_handler_map.at(Commands::acq_on)(*this, {});
+        fmt::print("vector 01: {:0x}\n", fmt::join(output_buffer_, ", "));
+        auto send_action = [this]() -> asio::awaitable<void>
         {
+            fmt::print("vector size: {}\n", output_buffer_.size());
+            fmt::print("vector 02: {:0x}\n", fmt::join(output_buffer_, ", "));
             fmt::print("Sending data\n");
-            uint32_t counter = 0x80000000;
-            auto data_size =
-                co_await host_socket_.async_send(serialize(output_buffer_, counter, send_data), asio::use_awaitable);
+            auto data_size = co_await host_socket_.async_send(asio::buffer(output_buffer_), asio::use_awaitable);
             fmt::print("waiting....\n");
-            fmt::print("vector: {:0x}", fmt::join(output_buffer_, ", "));
+            fmt::print("vector: {:0x}\n", fmt::join(output_buffer_, ", "));
             fmt::print("Sending data size: {}\n", data_size);
 
             auto receive_data_size =
@@ -76,9 +90,9 @@ namespace srs
         };
 
         co_spawn(io_context_, send_action(), asio::detached);
-        fmt::print("Comming here\n");
-
         io_context_.run();
     }
+
+    void Control::run() { /* io_context_.run(); */ }
 
 } // namespace srs

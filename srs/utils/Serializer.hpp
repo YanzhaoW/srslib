@@ -20,7 +20,6 @@ namespace srs
 
     auto serialize(BufferType& buffer, auto&&... data)
     {
-        buffer.clear();
         cista::buf<BufferType&> serializer{ buffer };
         serialize_multi(serializer, std::forward<decltype(data)>(data)...);
         return asio::buffer(buffer);

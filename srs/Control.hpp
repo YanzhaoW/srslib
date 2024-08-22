@@ -11,6 +11,9 @@ namespace srs
     {
       public:
         Control() = default;
+
+        void run();
+
         void configure_fec();
         void switch_on();
         void switch_off() {}
@@ -20,20 +23,29 @@ namespace srs
         [[nodiscard]] auto get_channel_address() const -> uint16_t { return channel_address_; }
         [[nodiscard]] auto get_fec_config() const -> const auto& { return fec_config_; }
 
-        template <MessageMode mode, typename DataType>
-        void register_command(const DataType& data, uint16_t address)
+        template <MessageMode mode>
+        void register_command(const std::vector<EntryType>& data, uint16_t address)
         {
+            if constexpr (mode == MessageMode::write)
+            {
+                encode_write_message(data, address);
+            }
+            else
+            {
+                encode_read_message(data, address);
+            }
+            // output_buffer_.
         }
 
-        template <MessageMode mode, typename DataType>
-        void register_command(const DataType& data)
+        template <MessageMode mode>
+        void register_command(const std::vector<EntryType>& data)
         {
-            register_command(data, get_channel_address());
+            register_command<mode>(data, get_channel_address());
         }
 
       private:
         using udp = asio::ip::udp;
-        static constexpr int default_port_number_ = 6006;
+        static constexpr int default_port_number_ = 6007;
 
         fec::Config fec_config_;
         asio::io_context io_context_;
@@ -42,5 +54,8 @@ namespace srs
         // udp::socket host_socket_{ io_context_ };
         std::array<char, 1000> read_message_buffer_{};
         uint16_t channel_address_ = 0xff;
+
+        void encode_write_message(const std::vector<EntryType>& data, uint16_t address);
+        void encode_read_message(const std::vector<EntryType>& data, uint16_t address) {}
     };
 } // namespace srs
