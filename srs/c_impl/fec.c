@@ -532,7 +532,6 @@ fec_rw(struct Fec *self, int port,
 			abort();
 		} else {
 			uint32_t count;
-            printf("fec_rw: package read: %u\n", count);
 			rc = udp_socket_receive(socket, (size_t)size);
 			assert(rc > 0);
 			count = ntohl(((uint32_t *)socket->recvbuf)[0]);

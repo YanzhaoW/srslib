@@ -10,9 +10,11 @@ namespace srs
     class Control
     {
       public:
-        Control() = default;
-
-        void run();
+        explicit Control(asio::io_context& io_context)
+            : io_context_{ &io_context }
+            , listen_socket_{ io_context, udp::endpoint{ udp::v4(), default_port_number_ } }
+        {
+        }
 
         void configure_fec();
         void switch_on();
@@ -48,10 +50,10 @@ namespace srs
         static constexpr int default_port_number_ = 6007;
 
         fec::Config fec_config_;
-        asio::io_context io_context_;
+        asio::io_context* io_context_;
         BufferType output_buffer_;
-        udp::socket host_socket_{ io_context_, udp::endpoint{ udp::v4(), default_port_number_ } };
-        // udp::socket host_socket_{ io_context_ };
+        udp::socket listen_socket_;
+        udp::endpoint remote_endpoint_;
         std::array<char, 1000> read_message_buffer_{};
         uint16_t channel_address_ = 0xff;
 

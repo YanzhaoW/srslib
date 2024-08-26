@@ -1,23 +1,24 @@
 #include "Control.hpp"
 #include "utils/Serializer.hpp"
 #include <fmt/ranges.h>
+#include <ranges>
 #include <string_view>
 
 namespace srs
 {
     void Control::set_remote_endpoint(std::string_view remote_ip, int port_number)
     {
-        auto resolver = udp::resolver{ io_context_ };
+        auto resolver = udp::resolver{ *io_context_ };
         fmt::print("Connecting to socket with ip: {} and port: {}\n", remote_ip, port_number);
         auto udp_endpoints = resolver.resolve(udp::v4(), remote_ip, fmt::format("{}", port_number));
-        asio::connect(host_socket_, udp_endpoints);
+        remote_endpoint_ = *udp_endpoints.begin();
     }
 
     void Control::set_host_port_number(int port_number)
     {
-        host_socket_.close();
-        host_socket_.open(udp::v4());
-        host_socket_.bind(udp::endpoint(udp::v4(), port_number));
+        listen_socket_.close();
+        listen_socket_.open(udp::v4());
+        listen_socket_.bind(udp::endpoint(udp::v4(), port_number));
     }
 
     struct CommandAcqOn
@@ -71,28 +72,28 @@ namespace srs
     void Control::switch_on()
     {
         commands_handler_map.at(Commands::acq_on)(*this, {});
-        fmt::print("vector 01: {:0x}\n", fmt::join(output_buffer_, ", "));
         auto send_action = [this]() -> asio::awaitable<void>
         {
-            fmt::print("vector size: {}\n", output_buffer_.size());
-            fmt::print("vector 02: {:0x}\n", fmt::join(output_buffer_, ", "));
             fmt::print("Sending data\n");
-            auto data_size = co_await host_socket_.async_send(asio::buffer(output_buffer_), asio::use_awaitable);
-            fmt::print("waiting....\n");
+            auto data_size = co_await listen_socket_.async_send_to(asio::buffer(output_buffer_), remote_endpoint_, asio::use_awaitable);
             fmt::print("vector: {:0x}\n", fmt::join(output_buffer_, ", "));
             fmt::print("Sending data size: {}\n", data_size);
-
-            auto receive_data_size =
-                co_await host_socket_.async_receive(asio::buffer(read_message_buffer_), asio::use_awaitable);
-            fmt::print("Received data size: {} from {:?}",
-                       receive_data_size,
-                       std::string_view{ read_message_buffer_.data(), receive_data_size });
         };
 
-        co_spawn(io_context_, send_action(), asio::detached);
-        io_context_.run();
-    }
+        auto listen_action = [this]() -> asio::awaitable<void>
+        {
+            fmt::print("starting to listen.....\n");
+            auto receive_data_size =
+                co_await listen_socket_.async_receive(asio::buffer(read_message_buffer_), asio::use_awaitable);
+            fmt::print(
+                "Received data size: {} from {:#04x}\n",
+                receive_data_size,
+                fmt::join(std::ranges::views::take(read_message_buffer_, static_cast<int>(receive_data_size)), ", "));
+        };
 
-    void Control::run() { /* io_context_.run(); */ }
+        co_spawn(*io_context_, listen_action(), asio::detached);
+        co_spawn(*io_context_, send_action(), asio::detached);
+        io_context_->run();
+    }
 
 } // namespace srs
