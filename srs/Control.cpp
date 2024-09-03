@@ -5,9 +5,31 @@
 
 namespace srs
 {
+    Control::Control() { start_work(); }
+
+    Control::~Control() { monitoring_thread_.join(); }
+
+    void Control::start_work()
+    {
+        auto monitoring_action = [this]()
+        {
+            auto work = asio::make_work_guard(io_context_);
+            asio::signal_set signals(io_context_, SIGINT, SIGTERM);
+            signals.async_wait(
+                [&work, this](auto, auto)
+                {
+                    fmt::print("Switching it off\n");
+                    switch_off();
+                    work.reset();
+                });
+            io_context_.run();
+        };
+        monitoring_thread_ = std::jthread{ monitoring_action };
+    }
+
     void Control::set_remote_endpoint(std::string_view remote_ip, int port_number)
     {
-        auto resolver = udp::resolver{ *io_context_ };
+        auto resolver = udp::resolver{ io_context_ };
         fmt::print("Connecting to socket with ip: {} and port: {}\n", remote_ip, port_number);
         auto udp_endpoints = resolver.resolve(udp::v4(), remote_ip, fmt::format("{}", port_number));
         remote_endpoint_ = *udp_endpoints.begin();

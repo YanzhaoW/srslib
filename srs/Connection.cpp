@@ -50,8 +50,6 @@ namespace srs
         encode_write_msg(data, address);
         co_spawn(control_->get_io_context(), listen_message(shared_from_this()), asio::detached);
         co_spawn(control_->get_io_context(), send_message(shared_from_this()), asio::detached);
-        // co_spawn(asio::system_executor(), listen_message(shared_from_this()), asio::detached);
-        // co_spawn(asio::system_executor(), send_message(shared_from_this()), asio::detached);
     }
 
     void ConnectionBase::wait_for_status(std::function<bool(const Status&)> const& condition,
