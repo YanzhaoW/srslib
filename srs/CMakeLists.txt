@@ -2,12 +2,7 @@ add_subdirectory(c_impl)
 
 add_library(srs_cpp SHARED)
 
-find_package(asio REQUIRED)
-find_package(fmt REQUIRED)
-find_package(cista REQUIRED)
-find_package(gsl-lite REQUIRED)
-
-target_sources(srs_cpp PRIVATE Control.cpp CommandHandlers.cpp Connection.cpp)
+target_sources(srs_cpp PRIVATE Control.cpp Connection.cpp)
 
 target_sources(
     srs_cpp
@@ -20,7 +15,6 @@ target_sources(
             devices/Fec.hpp
             devices/VmmDevice.hpp
             Control.hpp
-            CommandHandlers.hpp
             CommonDefitions.hpp)
 
 target_include_directories(

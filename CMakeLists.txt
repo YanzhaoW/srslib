@@ -8,6 +8,11 @@ project(
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
+find_package(asio REQUIRED)
+find_package(fmt REQUIRED)
+find_package(cista REQUIRED)
+find_package(gsl-lite REQUIRED)
+
 add_subdirectory(srs)
 
 add_library(srs INTERFACE)
