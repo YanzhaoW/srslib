@@ -1,11 +1,14 @@
 #include "Control.hpp"
 #include "utils/Serializer.hpp"
+#include <Connection.hpp>
 #include <fmt/ranges.h>
 #include <ranges>
 #include <string_view>
 
 namespace srs
 {
+    namespace this_coro = asio::this_coro;
+
     void Control::set_remote_endpoint(std::string_view remote_ip, int port_number)
     {
         auto resolver = udp::resolver{ *io_context_ };
@@ -14,12 +17,12 @@ namespace srs
         remote_endpoint_ = *udp_endpoints.begin();
     }
 
-    void Control::set_host_port_number(int port_number)
-    {
-        listen_socket_.close();
-        listen_socket_.open(udp::v4());
-        listen_socket_.bind(udp::endpoint(udp::v4(), port_number));
-    }
+    // void Control::set_host_port_number(int port_number)
+    // {
+    //     listen_socket_.close();
+    //     listen_socket_.open(udp::v4());
+    //     listen_socket_.bind(udp::endpoint(udp::v4(), port_number));
+    // }
 
     struct CommandAcqOn
     {
@@ -71,29 +74,12 @@ namespace srs
 
     void Control::switch_on()
     {
-        commands_handler_map.at(Commands::acq_on)(*this, {});
-        auto send_action = [this]() -> asio::awaitable<void>
-        {
-            fmt::print("Sending data\n");
-            auto data_size = co_await listen_socket_.async_send_to(asio::buffer(output_buffer_), remote_endpoint_, asio::use_awaitable);
-            fmt::print("vector: {:0x}\n", fmt::join(output_buffer_, ", "));
-            fmt::print("Sending data size: {}\n", data_size);
-        };
-
-        auto listen_action = [this]() -> asio::awaitable<void>
-        {
-            fmt::print("starting to listen.....\n");
-            auto receive_data_size =
-                co_await listen_socket_.async_receive(asio::buffer(read_message_buffer_), asio::use_awaitable);
-            fmt::print(
-                "Received data size: {} from {:#04x}\n",
-                receive_data_size,
-                fmt::join(std::ranges::views::take(read_message_buffer_, static_cast<int>(receive_data_size)), ", "));
-        };
-
-        co_spawn(*io_context_, listen_action(), asio::detached);
-        co_spawn(*io_context_, send_action(), asio::detached);
-        io_context_->run();
+        auto socket = std::make_shared<udp::socket>(*io_context_, udp::endpoint{ udp::v4(), default_port_number_ });
+        auto connection_info = ConnectionInfo{ io_context_ };
+        connection_info.socket = std::move(socket);
+        connection_info.endpoint = &remote_endpoint_;
+        auto connection = std::make_shared<Starter>(std::move(connection_info));
+        connection->acq_on();
     }
 
 } // namespace srs

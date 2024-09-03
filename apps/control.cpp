@@ -9,5 +9,7 @@ auto main() -> int
     // control.set_remote_endpoint("10.20.4.17", 6006);
     control.switch_on();
 
+    io_context.run();
+
     return 0;
 }

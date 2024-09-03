@@ -10,6 +10,7 @@ class CompressorRecipe(ConanFile):
         self.requires("asio/1.30.2")
         self.requires("fmt/11.0.1")
         self.requires("cista/0.15")
+        self.requires("gsl-lite/0.41.0")
 
     def generate(self):
         tc = CMakeToolchain(self)

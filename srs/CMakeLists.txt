@@ -5,8 +5,9 @@ add_library(srs_cpp SHARED)
 find_package(asio REQUIRED)
 find_package(fmt REQUIRED)
 find_package(cista REQUIRED)
+find_package(gsl-lite REQUIRED)
 
-target_sources(srs_cpp PRIVATE Control.cpp CommandHandlers.cpp)
+target_sources(srs_cpp PRIVATE Control.cpp CommandHandlers.cpp Connection.cpp)
 
 target_sources(
     srs_cpp
@@ -29,6 +30,6 @@ target_include_directories(
 
 target_link_libraries(
     srs_cpp
-    PUBLIC asio::asio
+    PUBLIC asio::asio gsl::gsl-lite
     PRIVATE fmt::fmt cista::cista
     INTERFACE srs_c)
