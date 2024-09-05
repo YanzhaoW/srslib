@@ -34,9 +34,6 @@ namespace srs
         void communicate(const std::vector<EntryType>& data, uint16_t address);
         void close_socket() { socket_->close(); }
 
-        void wait_for_status(std::function<bool(const Status&)> const& condition,
-                             std::chrono::seconds time_duration = DEFAULT_STATUS_WAITING_TIME_SECONDS);
-
         [[nodiscard]] auto get_read_msg_buffer() const -> const auto& { return read_msg_buffer_; }
         [[nodiscard]] auto get_control() -> auto& { return *control_; }
 

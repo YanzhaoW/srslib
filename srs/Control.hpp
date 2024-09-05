@@ -16,6 +16,20 @@ namespace srs
         std::atomic<bool> is_reading = false;
         std::atomic<bool> is_acq_off = false;
         std::condition_variable status_change;
+
+        void wait_for_status(auto&& condition, std::chrono::seconds time_duration = DEFAULT_STATUS_WAITING_TIME_SECONDS)
+        {
+            auto mutex = std::mutex{};
+            while (not condition(*this))
+            {
+                auto lock = std::unique_lock<std::mutex>{ mutex };
+                auto res = status_change.wait_for(lock, time_duration);
+                if (res == std::cv_status::timeout)
+                {
+                    throw std::runtime_error("TIMEOUT");
+                }
+            }
+        }
     };
 
     class Control
@@ -23,16 +37,12 @@ namespace srs
       public:
         Control();
 
-        Control(const Control&) = delete;
-        Control(Control&&) = delete;
-        Control& operator=(const Control&) = delete;
-        Control& operator=(Control&&) = delete;
-        ~Control();
-
         void configure_fec() {}
         void switch_on();
         void switch_off();
         void notify_status_change() { status_.status_change.notify_all(); }
+        void run() { monitoring_thread_.join(); }
+        void abort() {}
 
         // setters:
         void set_remote_endpoint(std::string_view remote_ip, int port_number);

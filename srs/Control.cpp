@@ -1,4 +1,5 @@
 #include "Control.hpp"
+#include "spdlog/spdlog.h"
 #include <Connection.hpp>
 #include <fmt/ranges.h>
 #include <string_view>
@@ -6,8 +7,6 @@
 namespace srs
 {
     Control::Control() { start_work(); }
-
-    Control::~Control() { monitoring_thread_.join(); }
 
     void Control::start_work()
     {
@@ -18,8 +17,9 @@ namespace srs
             signals.async_wait(
                 [&work, this](auto, auto)
                 {
-                    fmt::print("Switching it off\n");
+                    spdlog::debug("Turning srs system off");
                     switch_off();
+                    spdlog::info("SRS system is turned off");
                     work.reset();
                 });
             io_context_.run();
@@ -30,7 +30,7 @@ namespace srs
     void Control::set_remote_endpoint(std::string_view remote_ip, int port_number)
     {
         auto resolver = udp::resolver{ io_context_ };
-        fmt::print("Connecting to socket with ip: {} and port: {}\n", remote_ip, port_number);
+        spdlog::debug("Set the remote socket with ip: {} and port: {}", remote_ip, port_number);
         auto udp_endpoints = resolver.resolve(udp::v4(), remote_ip, fmt::format("{}", port_number));
         remote_endpoint_ = *udp_endpoints.begin();
     }

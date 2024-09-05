@@ -1,8 +1,8 @@
 #include "Connection.hpp"
+#include "spdlog/spdlog.h"
 #include "utils/Serializer.hpp"
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include <mutex>
 #include <ranges>
 #include <srs/Control.hpp>
 
@@ -25,23 +25,22 @@ namespace srs
 
     auto ConnectionBase::listen_message(std::shared_ptr<ConnectionBase> connection) -> asio::awaitable<void>
     {
-        fmt::print("starting to listen.....\n");
+        spdlog::debug("starting to listen.....");
         auto receive_data_size = co_await connection->socket_->async_receive(asio::buffer(connection->read_msg_buffer_),
                                                                              asio::use_awaitable);
-        fmt::print(
-            "Received data size: {} from {:#04x}\n",
+        spdlog::debug(
+            "Received {} bytes data: {:02x}",
             receive_data_size,
             fmt::join(std::ranges::views::take(connection->read_msg_buffer_, static_cast<int>(receive_data_size)),
-                      ", "));
+                      " "));
     }
 
     auto ConnectionBase::send_message(std::shared_ptr<ConnectionBase> connection) -> asio::awaitable<void>
     {
-        fmt::print("Sending data ...\n");
+        spdlog::debug("Sending data ...");
         auto data_size = co_await connection->socket_->async_send_to(
             asio::buffer(connection->write_msg_buffer_), *(connection->endpoint_), asio::use_awaitable);
-        fmt::print("vector: {:0x}\n", fmt::join(connection->write_msg_buffer_, ", "));
-        fmt::print("Sending data size: {}\n", data_size);
+        spdlog::debug("{} bytes data sent: {:02x}", data_size, fmt::join(connection->write_msg_buffer_, " "));
     }
 
     void ConnectionBase::communicate(const std::vector<EntryType>& data, uint16_t address)
@@ -50,23 +49,6 @@ namespace srs
         encode_write_msg(data, address);
         co_spawn(control_->get_io_context(), listen_message(shared_from_this()), asio::detached);
         co_spawn(control_->get_io_context(), send_message(shared_from_this()), asio::detached);
-    }
-
-    void ConnectionBase::wait_for_status(std::function<bool(const Status&)> const& condition,
-                                         std::chrono::seconds time_duration)
-    {
-        auto mutex = std::mutex{};
-        auto& status = control_->get_status();
-        auto& cond_var = status.status_change;
-        while (not condition(status))
-        {
-            auto lock = std::unique_lock<std::mutex>{ mutex };
-            auto res = cond_var.wait_for(lock, time_duration);
-            if (res == std::cv_status::timeout)
-            {
-                throw std::runtime_error("TIMEOUT");
-            }
-        }
     }
 
     auto ConnectionBase::new_shared_socket(int port_number) -> std::unique_ptr<udp::socket>
@@ -81,12 +63,14 @@ namespace srs
         auto& control = get_control();
         control.set_status_acq_on();
         control.notify_status_change();
+        spdlog::info("SRS system is turned on");
     }
 
     void Stopper::acq_off()
     {
         const auto waiting_time = std::chrono::seconds{ 10 };
-        wait_for_status([](const Status& status) { return status.is_acq_on.load(); }, waiting_time);
+        get_control().get_status().wait_for_status([](const Status& status) { return status.is_acq_on.load(); },
+                                                   waiting_time);
         const auto data = std::vector<EntryType>{ 0, 15, 0 };
         communicate(data, NULL_ADDRESS);
     }
