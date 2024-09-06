@@ -6,6 +6,7 @@
 
 namespace srs
 {
+    // Connections:
     constexpr auto WRITE_COMMAND_BITS = uint8_t{ 0xaa };
     constexpr auto DEFAULT_TYPE_BITS = uint8_t{ 0xaa };
     constexpr auto COMMAND_LENGTH_BITS = uint16_t{ 0xffff };
@@ -32,4 +33,7 @@ namespace srs
     using ReadBufferType = std::array<char, buffer_size>;
 
     using EntryType = uint32_t;
+
+    // Data processor:
+    constexpr auto DEFAULT_DISPLAY_PERIOD = std::chrono::milliseconds{ 500 };
 } // namespace srs

@@ -1,4 +1,5 @@
 #include "Connections.hpp"
+#include <DataProcessor.hpp>
 
 namespace srs
 {
@@ -21,6 +22,7 @@ namespace srs
 
     void DataReader::end_of_read()
     {
+        fmt::print("\n");
         spdlog::debug("Stopping data reading ...");
         close_socket();
         auto& control = get_control();
@@ -29,4 +31,5 @@ namespace srs
         spdlog::info("Data reading is stopped.");
     }
 
+    void DataReader::read_data_handle(std::span<char> read_data) { data_processor_->read_data_once(read_data); }
 } // namespace srs

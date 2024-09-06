@@ -22,10 +22,11 @@ auto main(int argc, char** argv) -> int
     CLI11_PARSE(cli_args, argc, argv);
 
     spdlog::set_level(spdlog_level);
-    spdlog::set_pattern("[%H:%M:%S] [%^-%l-%$] [thread %t] %v");
+    spdlog::set_pattern("[%H:%M:%S] [%^%=7l%$] [thread %t] %v");
 
     try
     {
+        spdlog::info("Welcome to SRS program");
         auto control = srs::Control{};
 
         control.set_remote_endpoint("10.0.0.2", 6600);

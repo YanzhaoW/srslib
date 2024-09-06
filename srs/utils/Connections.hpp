@@ -4,6 +4,9 @@
 
 namespace srs
 {
+
+    class DataProcessor;
+
     class Starter : public ConnectionBase<>
     {
       public:
@@ -34,8 +37,9 @@ namespace srs
     class DataReader : public ConnectionBase<LARGE_READ_MSG_BUFFER_SIZE>
     {
       public:
-        explicit DataReader(ConnectionInfo info)
-            : ConnectionBase(info, "DataReader")
+        DataReader(ConnectionInfo info, DataProcessor* processor)
+            : data_processor_{ processor }
+            , ConnectionBase(info, "DataReader")
         {
         }
 
@@ -46,13 +50,10 @@ namespace srs
         }
         void end_of_read();
 
-        void read_data_handle(std::span<char> read_data)
-        {
-            // std::copy(read_data.begin(), read_data.end(), std::back_inserter(data_queue_));
-        }
+        void read_data_handle(std::span<char> read_data);
 
       private:
-        std::deque<char> data_queue_;
+        gsl::not_null<DataProcessor*> data_processor_;
     };
 
 } // namespace srs

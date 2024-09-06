@@ -5,6 +5,7 @@
 #include <spdlog/spdlog.h>
 #include <srs/CommandHandlers.hpp>
 #include <srs/CommonDefitions.hpp>
+#include <srs/DataProcessor.hpp>
 #include <srs/devices/Fec.hpp>
 #include <thread>
 
@@ -42,7 +43,11 @@ namespace srs
         void switch_on();
         void switch_off();
         void notify_status_change() { status_.status_change.notify_all(); }
-        void run() { monitoring_thread_.join(); }
+        void run()
+        {
+            data_processor_->start();
+            monitoring_thread_.join();
+        }
         void read_data();
         void abort() {}
         void wait_for_status(auto&& condition, std::chrono::seconds time_duration = DEFAULT_STATUS_WAITING_TIME_SECONDS)
@@ -68,6 +73,7 @@ namespace srs
         Status status_;
         uint16_t channel_address_ = 0xff;
         fec::Config fec_config_;
+        std::unique_ptr<DataProcessor> data_processor_;
         asio::io_context io_context_;
         asio::signal_set signal_set_{ io_context_, SIGINT, SIGTERM };
         WriteBufferType output_buffer_;

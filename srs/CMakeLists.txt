@@ -2,7 +2,7 @@ add_subdirectory(c_impl)
 
 add_library(srs_cpp SHARED)
 
-target_sources(srs_cpp PRIVATE Control.cpp utils/Connections.cpp)
+target_sources(srs_cpp PRIVATE Control.cpp utils/Connections.cpp DataProcessor.cpp)
 
 target_sources(
     srs_cpp

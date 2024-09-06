@@ -6,11 +6,14 @@
 
 namespace srs
 {
-    Control::Control() { start_work(); }
+    Control::Control()
+    {
+        data_processor_ = std::make_unique<DataProcessor>(this);
+        start_work();
+    }
 
     void Control::start_work()
     {
-
         auto monitoring_action = [this]()
         {
             auto work = asio::make_work_guard(io_context_);
@@ -18,6 +21,7 @@ namespace srs
             signals.async_wait(
                 [&work, this](auto, auto)
                 {
+                    data_processor_->stop();
                     spdlog::trace("calling SIGINT from monitoring thread");
                     spdlog::debug("Turning srs system off ...");
                     status_.is_acq_off.store(true);
@@ -63,7 +67,7 @@ namespace srs
     {
         auto connection_info = ConnectionInfo{ this };
         connection_info.local_port_number = FEC_DAQ_RECEIVE_PORT;
-        auto data_reader = std::make_shared<DataReader>(connection_info);
+        auto data_reader = std::make_shared<DataReader>(connection_info, data_processor_.get());
         data_reader->start();
     }
 } // namespace srs

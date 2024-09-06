@@ -74,6 +74,7 @@ namespace srs
         {
             auto receive_data_size = co_await connection->socket_->async_receive(
                 asio::buffer(connection->read_msg_buffer_), asio::use_awaitable);
+            connection->read_data_handle(std::span{ connection->read_msg_buffer_.data(), receive_data_size });
             connection->reset_read_msg_buffer();
             if (not is_continuous or connection->get_control().get_status().is_acq_off.load())
             {
