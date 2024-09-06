@@ -1,6 +1,6 @@
 #include "Control.hpp"
 #include "spdlog/spdlog.h"
-#include <Connection.hpp>
+#include <Connections.hpp>
 #include <fmt/ranges.h>
 #include <string_view>
 
@@ -10,6 +10,7 @@ namespace srs
 
     void Control::start_work()
     {
+
         auto monitoring_action = [this]()
         {
             auto work = asio::make_work_guard(io_context_);
@@ -17,8 +18,13 @@ namespace srs
             signals.async_wait(
                 [&work, this](auto, auto)
                 {
-                    spdlog::debug("Turning srs system off");
+                    spdlog::trace("calling SIGINT from monitoring thread");
+                    spdlog::debug("Turning srs system off ...");
+                    status_.is_acq_off.store(true);
+                    status_.wait_for_status([](const auto& status) { return not status.is_reading.load(); });
+
                     switch_off();
+                    set_status_acq_on(false);
                     spdlog::info("SRS system is turned off");
                     work.reset();
                 });
@@ -51,5 +57,14 @@ namespace srs
         connection_info.endpoint = &remote_endpoint_;
         auto connection = std::make_shared<Stopper>(connection_info);
         connection->acq_off();
+    }
+
+    void Control::read_data()
+    {
+        spdlog::critical("passing here 6 ...");
+        auto connection_info = ConnectionInfo{ this };
+        connection_info.local_port_number = FEC_DAQ_RECEIVE_PORT;
+        auto data_reader = std::make_shared<DataReader>(connection_info);
+        data_reader->start();
     }
 } // namespace srs

@@ -2,7 +2,7 @@ add_subdirectory(c_impl)
 
 add_library(srs_cpp SHARED)
 
-target_sources(srs_cpp PRIVATE Control.cpp Connection.cpp)
+target_sources(srs_cpp PRIVATE Control.cpp utils/Connections.cpp)
 
 target_sources(
     srs_cpp
@@ -19,7 +19,7 @@ target_sources(
 
 target_include_directories(
     srs_cpp
-    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices
+    PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices ${CMAKE_CURRENT_SOURCE_DIR}/utils
     PUBLIC ${CMAKE_SOURCE_DIR})
 
 target_link_libraries(

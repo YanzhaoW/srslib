@@ -30,9 +30,13 @@ auto main(int argc, char** argv) -> int
 
         control.set_remote_endpoint("10.0.0.2", 6600);
 
+        // control.read_data();
         control.switch_on();
 
+        spdlog::critical("passing here 1 ...");
+
         control.run();
+        spdlog::critical("passing here 2 ...");
     }
     catch (std::exception& ex)
     {

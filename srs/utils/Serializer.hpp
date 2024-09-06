@@ -7,20 +7,20 @@
 
 namespace srs
 {
-    void serialize_multi(cista::buf<BufferType&>& serializer, auto&& data)
+    void serialize_multi(cista::buf<WriteBufferType&>& serializer, auto&& data)
     {
         cista::serialize<cista::mode::SERIALIZE_BIG_ENDIAN>(serializer, std::forward<decltype(data)>(data));
     }
 
-    void serialize_multi(cista::buf<BufferType&>& serializer, auto&& data_head, auto&&... data_tail)
+    void serialize_multi(cista::buf<WriteBufferType&>& serializer, auto&& data_head, auto&&... data_tail)
     {
         serialize_multi(serializer, std::forward<decltype(data_head)>(data_head));
         serialize_multi(serializer, std::forward<decltype(data_tail)>(data_tail)...);
     }
 
-    auto serialize(BufferType& buffer, auto&&... data)
+    auto serialize(WriteBufferType& buffer, auto&&... data)
     {
-        cista::buf<BufferType&> serializer{ buffer };
+        cista::buf<WriteBufferType&> serializer{ buffer };
         serialize_multi(serializer, std::forward<decltype(data)>(data)...);
         return asio::buffer(buffer);
     }
