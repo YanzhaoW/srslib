@@ -141,7 +141,7 @@ namespace srs
             }
         }
 
-        static auto listen_message(SharedPtr auto&& connection, bool is_continuous = false) -> asio::awaitable<void>;
+        static auto listen_message(SharedPtr auto connection, bool is_continuous = false) -> asio::awaitable<void>;
     };
 
     template <int size>
@@ -157,7 +157,7 @@ namespace srs
     }
 
     template <int size>
-    auto ConnectionBase<size>::listen_message(SharedPtr auto&& connection, bool is_continuous) -> asio::awaitable<void>
+    auto ConnectionBase<size>::listen_message(SharedPtr auto connection, bool is_continuous) -> asio::awaitable<void>
     {
         spdlog::debug("Connection {}: starting to listen ...", connection->get_name());
         while (true)

@@ -61,7 +61,6 @@ namespace srs
 
     void Control::read_data()
     {
-        spdlog::critical("passing here 6 ...");
         auto connection_info = ConnectionInfo{ this };
         connection_info.local_port_number = FEC_DAQ_RECEIVE_PORT;
         auto data_reader = std::make_shared<DataReader>(connection_info);

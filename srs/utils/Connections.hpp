@@ -15,11 +15,8 @@ namespace srs
         void end_of_read();
         void acq_on()
         {
-            spdlog::critical("passing here 5 ...");
             const auto data = std::vector<EntryType>{ 0, 15, 1 };
-            spdlog::critical("passing here 6 ...");
             communicate(data, NULL_ADDRESS);
-            spdlog::critical("passing here 7 ...");
         }
     };
 
