@@ -25,5 +25,5 @@ target_include_directories(
 target_link_libraries(
     srs_cpp
     PUBLIC asio::asio gsl::gsl-lite
-    PRIVATE fmt::fmt cista::cista spdlog::spdlog
+    PRIVATE fmt::fmt zpp_bits::zpp_bits spdlog::spdlog
     INTERFACE srs_c)

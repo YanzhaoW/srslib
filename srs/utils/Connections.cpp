@@ -22,7 +22,6 @@ namespace srs
 
     void DataReader::end_of_read()
     {
-        fmt::print("\n");
         spdlog::debug("Stopping data reading ...");
         close_socket();
         auto& control = get_control();

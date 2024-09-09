@@ -10,7 +10,7 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 find_package(asio REQUIRED)
 find_package(fmt REQUIRED)
-find_package(cista REQUIRED)
+find_package(zpp_bits REQUIRED)
 find_package(gsl-lite REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(CLI11 REQUIRED)

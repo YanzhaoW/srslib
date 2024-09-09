@@ -43,7 +43,7 @@ namespace srs
         gsl::not_null<Control*> control_;
         std::unique_ptr<udp::socket> socket_;
         udp::endpoint* endpoint_;
-        WriteBufferType write_msg_buffer_;
+        MsgBuffer write_msg_buffer_;
         ReadBufferType<buffer_size> read_msg_buffer_{};
 
         static auto send_message(std::shared_ptr<ConnectionBase> connection) -> asio::awaitable<void>;
@@ -59,11 +59,11 @@ namespace srs
     {
         spdlog::debug("Connection {}: Sending data ...", connection->get_name());
         auto data_size = co_await connection->socket_->async_send_to(
-            asio::buffer(connection->write_msg_buffer_), *(connection->endpoint_), asio::use_awaitable);
+            asio::buffer(connection->write_msg_buffer_.data()), *(connection->endpoint_), asio::use_awaitable);
         spdlog::debug("Connection {}: {} bytes data sent with {:02x}",
                       connection->get_name(),
                       data_size,
-                      fmt::join(connection->write_msg_buffer_, " "));
+                      fmt::join(connection->write_msg_buffer_.data(), " "));
     }
 
     template <int size>
@@ -96,6 +96,7 @@ namespace srs
         }
         else
         {
+            fmt::print("\n");
             spdlog::trace("Connection {}: Signal with num {} is called!", sig_num, connection->get_name());
             connection->end_of_read();
         }
@@ -111,16 +112,11 @@ namespace srs
     template <int size>
     void ConnectionBase<size>::encode_write_msg(const std::vector<EntryType>& data, uint16_t address)
     {
-        serialize(write_msg_buffer_,
-                  counter_,
-                  ZERO_UINT16_PADDING,
-                  address,
-                  WRITE_COMMAND_BITS,
-                  DEFAULT_TYPE_BITS,
-                  COMMAND_LENGTH_BITS);
+        write_msg_buffer_.serialize(
+            counter_, ZERO_UINT16_PADDING, address, WRITE_COMMAND_BITS, DEFAULT_TYPE_BITS, COMMAND_LENGTH_BITS);
         for (const auto entry : data)
         {
-            serialize(write_msg_buffer_, entry);
+            write_msg_buffer_.serialize(entry);
         }
     }
 

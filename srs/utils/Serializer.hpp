@@ -3,27 +3,50 @@
 
 #include "CommonDefitions.hpp"
 #include <asio/buffer.hpp>
-#include <cista.h>
+// #include <cista.h>
+#include <zpp_bits.h>
 
 namespace srs
 {
-    void serialize_multi(cista::buf<WriteBufferType&>& serializer, auto&& data)
-    {
-        cista::serialize<cista::mode::SERIALIZE_BIG_ENDIAN>(serializer, std::forward<decltype(data)>(data));
-    }
 
-    void serialize_multi(cista::buf<WriteBufferType&>& serializer, auto&& data_head, auto&&... data_tail)
+    class MsgBuffer
     {
-        serialize_multi(serializer, std::forward<decltype(data_head)>(data_head));
-        serialize_multi(serializer, std::forward<decltype(data_tail)>(data_tail)...);
-    }
+      public:
+        MsgBuffer() = default;
 
-    auto serialize(WriteBufferType& buffer, auto&&... data)
-    {
-        cista::buf<WriteBufferType&> serializer{ buffer };
-        serialize_multi(serializer, std::forward<decltype(data)>(data)...);
-        return asio::buffer(buffer);
-    }
+        auto serialize(auto&&... structs)
+        {
+            auto serialize_to = zpp::bits::out{ data_, zpp::bits::endian::network{}, zpp::bits::no_size{} };
+            auto size = data_.size();
+            serialize_to.position() += sizeof(BufferElementType) * size;
+
+            // cista::buf<WriteBufferType&> serializer{ buffer };
+            serialize_multi(serialize_to, std::forward<decltype(structs)>(structs)...);
+            return asio::buffer(data_);
+        }
+
+        auto deserialize(auto&&... structs) {}
+
+        [[nodiscard]] auto data() const -> const auto& { return data_; }
+
+        void clear() { data_.clear(); }
+
+      private:
+        BufferType data_;
+
+        void serialize_multi(auto&& serializer_to, auto&& data)
+        {
+            // cista::serialize<cista::mode::SERIALIZE_BIG_ENDIAN>(serializer, std::forward<decltype(data)>(data));
+            serializer_to(data).or_throw();
+        }
+
+        void serialize_multi(auto&& serializer_to, auto&& data_head, auto&&... data_tail)
+        {
+            serialize_multi(serializer_to, std::forward<decltype(data_head)>(data_head));
+            serialize_multi(serializer_to, std::forward<decltype(data_tail)>(data_tail)...);
+        }
+    };
+
 } // namespace srs
 
 // using cereal archive:

@@ -28,6 +28,8 @@ namespace srs
     constexpr auto FEC_DAQ_RECEIVE_PORT = 6006;
 
     using WriteBufferType = std::vector<uint8_t>;
+    using BufferElementType = uint8_t;
+    using BufferType = std::vector<BufferElementType>;
 
     template <int buffer_size = SMALL_READ_MSG_BUFFER_SIZE>
     using ReadBufferType = std::array<char, buffer_size>;
@@ -35,5 +37,5 @@ namespace srs
     using EntryType = uint32_t;
 
     // Data processor:
-    constexpr auto DEFAULT_DISPLAY_PERIOD = std::chrono::milliseconds{ 500 };
+    constexpr auto DEFAULT_DISPLAY_PERIOD = std::chrono::milliseconds{ 200 };
 } // namespace srs
