@@ -1,18 +1,23 @@
 #pragma once
-#include <fmt/ostream.h>
 
 #include "CommonDefitions.hpp"
 #include <asio/buffer.hpp>
-// #include <cista.h>
+#include <ranges>
 #include <zpp_bits.h>
 
 namespace srs
 {
+    namespace rng = std::ranges;
 
-    class MsgBuffer
+    class SerializableMsgBuffer
     {
       public:
-        MsgBuffer() = default;
+        SerializableMsgBuffer() = default;
+        explicit SerializableMsgBuffer(std::span<BufferElementType> read_data)
+        {
+            data_.reserve(read_data.size());
+            std::copy(read_data.begin(), read_data.end(), std::back_inserter(data_));
+        }
 
         auto serialize(auto&&... structs)
         {
@@ -21,61 +26,47 @@ namespace srs
             serialize_to.position() += sizeof(BufferElementType) * size;
 
             // cista::buf<WriteBufferType&> serializer{ buffer };
-            serialize_multi(serialize_to, std::forward<decltype(structs)>(structs)...);
+            // serialize_multi(serialize_to, std::forward<decltype(structs)>(structs)...);
+            serialize_to(std::forward<decltype(structs)>(structs)...).or_throw();
             return asio::buffer(data_);
         }
 
-        auto deserialize(auto&&... structs) {}
+        template <typename T>
+        auto deserialize(auto&& header, std::vector<T>& body)
+        {
+            auto deserialize_to = zpp::bits::in{ data_, zpp::bits::endian::network{}, zpp::bits::no_size{} };
+
+            auto read_bytes = data_.size() * sizeof(BufferElementType);
+            constexpr auto header_bytes = sizeof(header);
+            constexpr auto element_bytes = sizeof(T);
+            auto vector_size = (read_bytes - header_bytes) / element_bytes;
+            if (vector_size < 0)
+            {
+                throw std::runtime_error("Deserialization: Wrong header type!");
+            }
+            body.resize(vector_size);
+            rng::fill(body, 0);
+
+            deserialize_to(header, body).or_throw();
+        }
 
         [[nodiscard]] auto data() const -> const auto& { return data_; }
 
         void clear() { data_.clear(); }
 
       private:
-        BufferType data_;
+        WriteBufferType data_;
 
-        void serialize_multi(auto&& serializer_to, auto&& data)
-        {
-            // cista::serialize<cista::mode::SERIALIZE_BIG_ENDIAN>(serializer, std::forward<decltype(data)>(data));
-            serializer_to(data).or_throw();
-        }
+        // void serialize_multi(auto&& serializer_to, auto&& data)
+        // {
+        //     // cista::serialize<cista::mode::SERIALIZE_BIG_ENDIAN>(serializer, std::forward<decltype(data)>(data));
+        //     serializer_to(data).or_throw();
+        // }
 
-        void serialize_multi(auto&& serializer_to, auto&& data_head, auto&&... data_tail)
-        {
-            serialize_multi(serializer_to, std::forward<decltype(data_head)>(data_head));
-            serialize_multi(serializer_to, std::forward<decltype(data_tail)>(data_tail)...);
-        }
+        // void serialize_multi(auto&& serializer_to, auto&& data_head, auto&&... data_tail)
+        // {
+        //     serialize_multi(serializer_to, std::forward<decltype(data_head)>(data_head));
+        //     serialize_multi(serializer_to, std::forward<decltype(data_tail)>(data_tail)...);
+        // }
     };
-
 } // namespace srs
-
-// using cereal archive:
-
-// #include <cereal/types/vector.hpp>
-// #include <iostream>
-// #include <ranges>
-// #include <span>
-// #include <sstream>
-// #include <vector>
-
-// // Type your code here, or load an example.
-// auto main() -> int {
-//     std::vector<uint8_t> data1{1};
-//     std::array<uint8_t, 4> data{1, 2, 3, 4};
-//     auto sstream =
-//         std::stringstream{std::ios::binary | std::ios::out | std::ios::in};
-//     fmt::print("string before: {:?}\n", sstream.str());
-//     {
-//         auto archive = cereal::PortableBinaryOutputArchive{
-//             sstream, cereal::PortableBinaryOutputArchive::Options::BigEndian()};
-//         archive(data, data1);
-//     }
-//     fmt::print("string after: {:?}\n", sstream.str());
-//     auto data_span = std::span{sstream.view()};
-//     fmt::print("size: {}\n", data_span.size());
-//     fmt::print("{:02x}\n",
-//                fmt::join(std::ranges::views::drop(data_span, 1), ""));
-
-//     return 0;
-
-// }

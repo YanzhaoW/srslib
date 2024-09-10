@@ -18,7 +18,7 @@ namespace srs
         void end_of_read();
         void acq_on()
         {
-            const auto data = std::vector<EntryType>{ 0, 15, 1 };
+            const auto data = std::vector<CommunicateEntryType>{ 0, 15, 1 };
             communicate(data, NULL_ADDRESS);
         }
     };
@@ -50,7 +50,7 @@ namespace srs
         }
         void end_of_read();
 
-        void read_data_handle(std::span<char> read_data);
+        void read_data_handle(std::span<BufferElementType> read_data);
 
       private:
         gsl::not_null<DataProcessor*> data_processor_;

@@ -14,6 +14,7 @@ find_package(zpp_bits REQUIRED)
 find_package(gsl-lite REQUIRED)
 find_package(spdlog REQUIRED)
 find_package(CLI11 REQUIRED)
+find_package(TBB REQUIRED)
 
 add_subdirectory(srs)
 

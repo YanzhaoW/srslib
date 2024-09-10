@@ -16,7 +16,7 @@ namespace srs
     {
         const auto waiting_time = std::chrono::seconds{ 4 };
         get_control().wait_for_status([](const Status& status) { return status.is_acq_on.load(); }, waiting_time);
-        const auto data = std::vector<EntryType>{ 0, 15, 0 };
+        const auto data = std::vector<CommunicateEntryType>{ 0, 15, 0 };
         communicate(data, NULL_ADDRESS);
     }
 
@@ -30,5 +30,8 @@ namespace srs
         spdlog::info("Data reading is stopped.");
     }
 
-    void DataReader::read_data_handle(std::span<char> read_data) { data_processor_->read_data_once(read_data); }
+    void DataReader::read_data_handle(std::span<BufferElementType> read_data)
+    {
+        data_processor_->read_data_once(read_data);
+    }
 } // namespace srs

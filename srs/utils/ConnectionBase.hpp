@@ -27,10 +27,10 @@ namespace srs
         }
 
         void listen(this auto&& self, bool is_continuous = false);
-        void communicate(this auto&& self, const std::vector<EntryType>& data, uint16_t address);
+        void communicate(this auto&& self, const std::vector<CommunicateEntryType>& data, uint16_t address);
         void close_socket();
         void end_of_read() { spdlog::trace("calling base class end_of_read from {:?}!", name_); };
-        void read_data_handle(std::span<char> read_data) {}
+        void read_data_handle(std::span<BufferElementType> read_data) {}
 
         [[nodiscard]] auto get_read_msg_buffer() const -> const auto& { return read_msg_buffer_; }
         [[nodiscard]] auto get_name() const -> const auto& { return name_; }
@@ -43,15 +43,15 @@ namespace srs
         gsl::not_null<Control*> control_;
         std::unique_ptr<udp::socket> socket_;
         udp::endpoint* endpoint_;
-        MsgBuffer write_msg_buffer_;
+        SerializableMsgBuffer write_msg_buffer_;
         ReadBufferType<buffer_size> read_msg_buffer_{};
 
         static auto send_message(std::shared_ptr<ConnectionBase> connection) -> asio::awaitable<void>;
-        void encode_write_msg(const std::vector<EntryType>& data, uint16_t address);
+        void encode_write_msg(const std::vector<CommunicateEntryType>& data, uint16_t address);
         auto new_shared_socket(int port_number) -> std::unique_ptr<udp::socket>;
-        inline void reset_read_msg_buffer() { std::fill(read_msg_buffer_.begin(), read_msg_buffer_.end(), 0); }
         static auto signal_handling(auto* connection) -> asio::awaitable<void>;
         static auto listen_message(SharedPtr auto connection, bool is_continuous = false) -> asio::awaitable<void>;
+        void reset_read_msg_buffer() { std::fill(read_msg_buffer_.begin(), read_msg_buffer_.end(), 0); }
     };
 
     template <int size>
@@ -74,7 +74,10 @@ namespace srs
         {
             auto receive_data_size = co_await connection->socket_->async_receive(
                 asio::buffer(connection->read_msg_buffer_), asio::use_awaitable);
-            connection->read_data_handle(std::span{ connection->read_msg_buffer_.data(), receive_data_size });
+            auto read_msg = std::span{ connection->read_msg_buffer_.data(), receive_data_size };
+            connection->read_data_handle(read_msg);
+            // spdlog::trace("received size: {}, received data: {:x}", read_msg.size(), fmt::join(read_msg, " "));
+
             connection->reset_read_msg_buffer();
             if (not is_continuous or connection->get_control().get_status().is_acq_off.load())
             {
@@ -110,14 +113,11 @@ namespace srs
     }
 
     template <int size>
-    void ConnectionBase<size>::encode_write_msg(const std::vector<EntryType>& data, uint16_t address)
+    void ConnectionBase<size>::encode_write_msg(const std::vector<CommunicateEntryType>& data, uint16_t address)
     {
         write_msg_buffer_.serialize(
             counter_, ZERO_UINT16_PADDING, address, WRITE_COMMAND_BITS, DEFAULT_TYPE_BITS, COMMAND_LENGTH_BITS);
-        for (const auto entry : data)
-        {
-            write_msg_buffer_.serialize(entry);
-        }
+        write_msg_buffer_.serialize(data);
     }
 
     template <int size>
@@ -135,7 +135,9 @@ namespace srs
     }
 
     template <int size>
-    void ConnectionBase<size>::communicate(this auto&& self, const std::vector<EntryType>& data, uint16_t address)
+    void ConnectionBase<size>::communicate(this auto&& self,
+                                           const std::vector<CommunicateEntryType>& data,
+                                           uint16_t address)
     {
         self.listen();
         if (self.endpoint_ != nullptr)

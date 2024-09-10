@@ -76,7 +76,6 @@ namespace srs
         std::unique_ptr<DataProcessor> data_processor_;
         asio::io_context io_context_;
         asio::signal_set signal_set_{ io_context_, SIGINT, SIGTERM };
-        WriteBufferType output_buffer_;
         std::jthread monitoring_thread_;
         // udp::socket listen_socket_;
         udp::endpoint remote_endpoint_;

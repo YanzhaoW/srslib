@@ -54,5 +54,5 @@ namespace srs
     {
     }
 
-    void DataProcessor::read_data_once(std::span<char> read_data) { total_read_data_bytes_ += read_data.size(); }
+    void DataProcessor::read_data_once(std::span<BufferElementType> read_data) { total_read_data_bytes_ += read_data.size(); }
 } // namespace srs

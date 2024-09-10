@@ -43,7 +43,7 @@ namespace srs
         explicit DataProcessor(Control* control);
 
         // Need to be fast return
-        void read_data_once(std::span<char> read_data);
+        void read_data_once(std::span<BufferElementType> read_data);
 
         void start() { monitor_.start(); }
         void stop() { monitor_.stop(); }
