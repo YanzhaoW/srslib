@@ -3,14 +3,13 @@
 #include <asio.hpp>
 #include <atomic>
 #include <spdlog/spdlog.h>
-#include <srs/CommandHandlers.hpp>
 #include <srs/CommonDefitions.hpp>
-#include <srs/DataProcessor.hpp>
 #include <srs/devices/Fec.hpp>
 #include <thread>
 
 namespace srs
 {
+    class DataProcessor;
     struct Status
     {
         std::atomic<bool> is_configured = false;
@@ -39,15 +38,17 @@ namespace srs
       public:
         Control();
 
+        Control(const Control&) = delete;
+        Control(Control&&) = delete;
+        Control& operator=(const Control&) = delete;
+        Control& operator=(Control&&) = delete;
+        ~Control();
+
         void configure_fec() {}
         void switch_on();
         void switch_off();
         void notify_status_change() { status_.status_change.notify_all(); }
-        void run()
-        {
-            data_processor_->start();
-            monitoring_thread_.join();
-        }
+        void run();
         void read_data();
         void abort() {}
         void wait_for_status(auto&& condition, std::chrono::seconds time_duration = DEFAULT_STATUS_WAITING_TIME_SECONDS)
@@ -70,16 +71,15 @@ namespace srs
         using udp = asio::ip::udp;
         static constexpr int default_port1_number_ = 6007;
 
+
         Status status_;
         uint16_t channel_address_ = 0xff;
         fec::Config fec_config_;
         std::unique_ptr<DataProcessor> data_processor_;
-        asio::io_context io_context_;
+        asio::io_context io_context_{ 4 };
         asio::signal_set signal_set_{ io_context_, SIGINT, SIGTERM };
         std::jthread monitoring_thread_;
-        // udp::socket listen_socket_;
         udp::endpoint remote_endpoint_;
-        // std::array<char, 1000> read_message_buffer_{};
 
         void start_work();
     };

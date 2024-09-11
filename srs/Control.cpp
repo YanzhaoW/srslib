@@ -1,4 +1,5 @@
 #include "Control.hpp"
+#include "DataProcessor.hpp"
 #include "spdlog/spdlog.h"
 #include <Connections.hpp>
 #include <fmt/ranges.h>
@@ -11,6 +12,8 @@ namespace srs
         data_processor_ = std::make_unique<DataProcessor>(this);
         start_work();
     }
+
+    Control::~Control() = default;
 
     void Control::start_work()
     {
@@ -69,5 +72,11 @@ namespace srs
         connection_info.local_port_number = FEC_DAQ_RECEIVE_PORT;
         auto data_reader = std::make_shared<DataReader>(connection_info, data_processor_.get());
         data_reader->start();
+    }
+
+    void Control::run()
+    {
+        data_processor_->start();
+        monitoring_thread_.join();
     }
 } // namespace srs

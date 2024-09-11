@@ -5,11 +5,12 @@
 #include <asio/steady_timer.hpp>
 #include <atomic>
 #include <chrono>
-#include <deque>
 #include <gsl/gsl-lite.hpp>
 #include <span>
 #include <spdlog/logger.h>
 #include <srs/CommonDefitions.hpp>
+#include <srs/utils/Serializer.hpp>
+#include <tbb/concurrent_queue.h>
 
 namespace srs
 {
@@ -45,8 +46,11 @@ namespace srs
         // Need to be fast return
         void read_data_once(std::span<BufferElementType> read_data);
 
-        void start() { monitor_.start(); }
-        void stop() { monitor_.stop(); }
+        // should run on a different task
+        void analysis_loop();
+
+        void start();
+        void stop();
 
         // getters:
         [[nodiscard]] auto get_read_data_bytes() const -> uint64_t { return total_read_data_bytes_.load(); }
@@ -56,7 +60,8 @@ namespace srs
         void set_monitor_display_period(std::chrono::milliseconds duration) { monitor_.set_display_period(duration); }
 
       private:
-        std::deque<char> data_queue_;
+        std::atomic<bool> is_stopped{ false };
+        tbb::concurrent_bounded_queue<SerializableMsgBuffer> data_queue_;
         std::atomic<uint64_t> total_read_data_bytes_ = 0;
         gsl::not_null<Control*> control_;
         DataMonitor monitor_;

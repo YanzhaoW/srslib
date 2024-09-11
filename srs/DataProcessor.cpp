@@ -54,5 +54,40 @@ namespace srs
     {
     }
 
-    void DataProcessor::read_data_once(std::span<BufferElementType> read_data) { total_read_data_bytes_ += read_data.size(); }
+    void DataProcessor::start()
+    {
+        is_stopped.store(false);
+        monitor_.start();
+        spdlog::trace("posting analysis loop");
+        // control_->get_io_context().post([this]() { analysis_loop(); });
+        spdlog::trace("After posting analysis loop");
+    }
+
+    void DataProcessor::stop()
+    {
+        is_stopped.store(true);
+        monitor_.stop();
+        data_queue_.abort();
+    }
+
+    void DataProcessor::read_data_once(std::span<BufferElementType> read_data)
+    {
+        total_read_data_bytes_ += read_data.size();
+        auto is_success = data_queue_.try_emplace(read_data);
+        if (not is_success)
+        {
+            spdlog::critical("Data queue is full and message is lost. Try to increase its capacity!");
+        }
+    }
+
+    void DataProcessor::analysis_loop()
+    {
+        spdlog::trace("entering analysis loop");
+        auto input_data_buffer = SerializableMsgBuffer{};
+        while (not is_stopped)
+        {
+            data_queue_.pop(input_data_buffer);
+            spdlog::trace("Analysising data of size: {}", input_data_buffer.data().size());
+        }
+    }
 } // namespace srs
