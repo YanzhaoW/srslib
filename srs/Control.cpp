@@ -21,20 +21,26 @@ namespace srs
         auto monitoring_action = [this]()
         {
             // auto work = asio::make_work_guard(io_context_);
-            asio::signal_set signals(io_context_, SIGINT, SIGTERM);
-            signals.async_wait(
-                [this](auto, auto)
+            // asio::signal_set signal(io_context_, SIGINT, SIGTERM);
+            signal_set_.async_wait(
+                [this](const asio::error_code& error, auto sig_num)
                 {
+                    if (error == asio::error::operation_aborted)
+                    {
+                        return;
+                    }
+
                     spdlog::trace("calling SIGINT from monitoring thread");
-                    stop();
+                    exit();
                 });
             io_context_.join();
         };
         working_thread_ = std::jthread{ monitoring_action };
     }
 
-    void Control::stop()
+    void Control::exit()
     {
+        signal_set_.cancel();
         data_processor_->stop();
         spdlog::debug("Turning srs system off ...");
         status_.is_acq_off.store(true);

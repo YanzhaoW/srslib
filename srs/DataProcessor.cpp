@@ -70,16 +70,18 @@ namespace srs
     {
         is_stopped.store(false);
         monitor_.start();
-        spdlog::trace("posting analysis loop");
         asio::post(control_->get_io_context(), [this]() { analysis_loop(); });
-        spdlog::trace("After posting analysis loop");
     }
 
     void DataProcessor::stop()
     {
-        is_stopped.store(true);
-        monitor_.stop();
-        data_queue_.abort();
+        // CAS operation to guarantee the thread safty
+        auto expected = false;
+        if (is_stopped.compare_exchange_strong(expected, true))
+        {
+            monitor_.stop();
+            data_queue_.abort();
+        }
     }
 
     void DataProcessor::read_data_once(std::span<BufferElementType> read_data)
@@ -98,6 +100,7 @@ namespace srs
         {
             spdlog::trace("entering analysis loop");
             auto input_data_buffer = SerializableMsgBuffer{};
+
             while (not is_stopped)
             {
                 data_queue_.pop(input_data_buffer);
@@ -111,6 +114,7 @@ namespace srs
         {
             // TODO: call stop of the control
             spdlog::critical(ex.what());
+            control_->exit();
         }
     }
 } // namespace srs

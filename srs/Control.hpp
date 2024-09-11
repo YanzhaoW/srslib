@@ -49,11 +49,11 @@ namespace srs
         void configure_fec() {}
         void switch_on();
         void switch_off();
+        void read_data();
+
         void notify_status_change() { status_.status_change.notify_all(); }
         void run();
-        void stop();
-        void read_data();
-        void abort() {}
+        void exit();
         void wait_for_status(auto&& condition, std::chrono::seconds time_duration = DEFAULT_STATUS_WAITING_TIME_SECONDS)
         {
             status_.wait_for_status(std::forward<decltype(condition)>(condition), time_duration);
