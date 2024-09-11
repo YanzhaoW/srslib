@@ -3,6 +3,7 @@
 #include <chrono>
 #include <cstdint>
 #include <vector>
+#include <asio/thread_pool.hpp>
 
 namespace srs
 {
@@ -37,4 +38,6 @@ namespace srs
 
     // Data processor:
     constexpr auto DEFAULT_DISPLAY_PERIOD = std::chrono::milliseconds{ 200 };
+
+    using io_context_type = asio::thread_pool;
 } // namespace srs

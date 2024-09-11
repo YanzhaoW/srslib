@@ -1,4 +1,6 @@
 #include "DataProcessor.hpp"
+#include <asio/co_spawn.hpp>
+#include <asio/detached.hpp>
 #include <fmt/chrono.h>
 #include <fmt/color.h>
 #include <spdlog/pattern_formatter.h>
@@ -7,7 +9,7 @@
 
 namespace srs
 {
-    DataMonitor::DataMonitor(DataProcessor* processor, asio::io_context* io_context)
+    DataMonitor::DataMonitor(DataProcessor* processor, io_context_type* io_context)
         : processor_{ processor }
         , io_context_{ io_context }
         , clock_{ *io_context_ }
@@ -37,11 +39,21 @@ namespace srs
             last_read_data_bytes_ = total_bytes_count;
             last_print_time_ = time_now;
 
-            auto speed_string = fmt::format(fg(fmt::color::yellow) | fmt::emphasis::bold,
-                                            "{:>7.5}",
-                                            bytes_read / static_cast<double>(time_duration.count()));
+            set_speed_string(bytes_read / static_cast<double>(time_duration.count()));
+            console_->info("Data reading rate: {}. Press \"Ctrl-C\" to stop.\r", speed_string_);
+        }
+    }
 
-            console_->info("Data reading rate: {} MB/s. Press \"Ctrl-C\" to stop.\r", speed_string);
+    void DataMonitor::set_speed_string(double speed_MBps)
+    {
+        if (speed_MBps < 1.)
+        {
+            speed_string_ =
+                fmt::format(fg(fmt::color::yellow) | fmt::emphasis::bold, "{:>7.5} KB/s", 1000. * speed_MBps);
+        }
+        else
+        {
+            speed_string_ = fmt::format(fg(fmt::color::yellow) | fmt::emphasis::bold, "{:>7.5} MB/s", speed_MBps);
         }
     }
 
@@ -59,7 +71,7 @@ namespace srs
         is_stopped.store(false);
         monitor_.start();
         spdlog::trace("posting analysis loop");
-        // control_->get_io_context().post([this]() { analysis_loop(); });
+        asio::post(control_->get_io_context(), [this]() { analysis_loop(); });
         spdlog::trace("After posting analysis loop");
     }
 
@@ -82,12 +94,23 @@ namespace srs
 
     void DataProcessor::analysis_loop()
     {
-        spdlog::trace("entering analysis loop");
-        auto input_data_buffer = SerializableMsgBuffer{};
-        while (not is_stopped)
+        try
         {
-            data_queue_.pop(input_data_buffer);
-            spdlog::trace("Analysising data of size: {}", input_data_buffer.data().size());
+            spdlog::trace("entering analysis loop");
+            auto input_data_buffer = SerializableMsgBuffer{};
+            while (not is_stopped)
+            {
+                data_queue_.pop(input_data_buffer);
+            }
+        }
+        catch (oneapi::tbb::user_abort& ex)
+        {
+            spdlog::info("Data processing: {}", ex.what());
+        }
+        catch (std::exception& ex)
+        {
+            // TODO: call stop of the control
+            spdlog::critical(ex.what());
         }
     }
 } // namespace srs

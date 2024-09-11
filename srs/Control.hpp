@@ -1,6 +1,8 @@
 #pragma once
 
-#include <asio.hpp>
+#include <asio/ip/udp.hpp>
+#include <asio/signal_set.hpp>
+#include <asio/thread_pool.hpp>
 #include <atomic>
 #include <spdlog/spdlog.h>
 #include <srs/CommonDefitions.hpp>
@@ -49,6 +51,7 @@ namespace srs
         void switch_off();
         void notify_status_change() { status_.status_change.notify_all(); }
         void run();
+        void stop();
         void read_data();
         void abort() {}
         void wait_for_status(auto&& condition, std::chrono::seconds time_duration = DEFAULT_STATUS_WAITING_TIME_SECONDS)
@@ -71,14 +74,14 @@ namespace srs
         using udp = asio::ip::udp;
         static constexpr int default_port1_number_ = 6007;
 
-
         Status status_;
         uint16_t channel_address_ = 0xff;
         fec::Config fec_config_;
         std::unique_ptr<DataProcessor> data_processor_;
-        asio::io_context io_context_{ 4 };
+        io_context_type io_context_{ 4 };
+        asio::executor_work_guard<io_context_type::executor_type> io_work_guard_;
         asio::signal_set signal_set_{ io_context_, SIGINT, SIGTERM };
-        std::jthread monitoring_thread_;
+        std::jthread working_thread_;
         udp::endpoint remote_endpoint_;
 
         void start_work();

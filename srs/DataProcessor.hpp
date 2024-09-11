@@ -1,7 +1,6 @@
 #pragma once
 
 #include <asio/awaitable.hpp>
-#include <asio/io_context.hpp>
 #include <asio/steady_timer.hpp>
 #include <atomic>
 #include <chrono>
@@ -20,7 +19,7 @@ namespace srs
     class DataMonitor
     {
       public:
-        explicit DataMonitor(DataProcessor* processor, asio::io_context* io_context);
+        explicit DataMonitor(DataProcessor* processor, io_context_type* io_context);
         void show_data_speed(bool val = true) { is_shown_ = val; }
         void set_display_period(std::chrono::milliseconds duration) { period_ = duration; }
         auto print_cycle() -> asio::awaitable<void>;
@@ -30,12 +29,15 @@ namespace srs
       private:
         bool is_shown_ = true;
         gsl::not_null<DataProcessor*> processor_;
-        gsl::not_null<asio::io_context*> io_context_;
+        gsl::not_null<io_context_type*> io_context_;
         std::shared_ptr<spdlog::logger> console_;
         asio::steady_timer clock_;
         std::atomic<uint64_t> last_read_data_bytes_ = 0;
         std::chrono::time_point<std::chrono::steady_clock> last_print_time_ = std::chrono::steady_clock::now();
         std::chrono::milliseconds period_ = DEFAULT_DISPLAY_PERIOD;
+        std::string speed_string_;
+
+        void set_speed_string(double speed_MBps);
     };
 
     class DataProcessor
@@ -46,8 +48,6 @@ namespace srs
         // Need to be fast return
         void read_data_once(std::span<BufferElementType> read_data);
 
-        // should run on a different task
-        void analysis_loop();
 
         void start();
         void stop();
@@ -65,6 +65,9 @@ namespace srs
         std::atomic<uint64_t> total_read_data_bytes_ = 0;
         gsl::not_null<Control*> control_;
         DataMonitor monitor_;
+
+        // should run on a different task
+        void analysis_loop();
     };
 
 } // namespace srs

@@ -8,6 +8,7 @@
 namespace srs
 {
     Control::Control()
+        : io_work_guard_{ asio::make_work_guard(io_context_) }
     {
         data_processor_ = std::make_unique<DataProcessor>(this);
         start_work();
@@ -19,25 +20,30 @@ namespace srs
     {
         auto monitoring_action = [this]()
         {
-            auto work = asio::make_work_guard(io_context_);
+            // auto work = asio::make_work_guard(io_context_);
             asio::signal_set signals(io_context_, SIGINT, SIGTERM);
             signals.async_wait(
-                [&work, this](auto, auto)
+                [this](auto, auto)
                 {
-                    data_processor_->stop();
                     spdlog::trace("calling SIGINT from monitoring thread");
-                    spdlog::debug("Turning srs system off ...");
-                    status_.is_acq_off.store(true);
-                    status_.wait_for_status([](const auto& status) { return not status.is_reading.load(); });
-
-                    switch_off();
-                    set_status_acq_on(false);
-                    spdlog::info("SRS system is turned off");
-                    work.reset();
+                    stop();
                 });
-            io_context_.run();
+            io_context_.join();
         };
-        monitoring_thread_ = std::jthread{ monitoring_action };
+        working_thread_ = std::jthread{ monitoring_action };
+    }
+
+    void Control::stop()
+    {
+        data_processor_->stop();
+        spdlog::debug("Turning srs system off ...");
+        status_.is_acq_off.store(true);
+        status_.wait_for_status([](const auto& status) { return not status.is_reading.load(); });
+
+        switch_off();
+        set_status_acq_on(false);
+        spdlog::info("SRS system is turned off");
+        io_work_guard_.reset();
     }
 
     void Control::set_remote_endpoint(std::string_view remote_ip, int port_number)
@@ -77,6 +83,6 @@ namespace srs
     void Control::run()
     {
         data_processor_->start();
-        monitoring_thread_.join();
+        working_thread_.join();
     }
 } // namespace srs
