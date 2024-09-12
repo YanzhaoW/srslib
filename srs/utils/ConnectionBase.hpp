@@ -2,12 +2,12 @@
 
 #include "ConnectionTypeDef.hpp"
 #include "gsl/gsl-lite.hpp"
-#include "utils/Serializer.hpp"
 #include <asio/experimental/awaitable_operators.hpp>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
+#include <srs/utils/Serializer.hpp>
+#include <srs/App.hpp>
 #include <srs/CommonDefitions.hpp>
-#include <srs/Control.hpp>
 
 namespace srs
 {
@@ -40,7 +40,7 @@ namespace srs
         int local_port_number_ = 0;
         uint32_t counter_ = INIT_COUNT_VALUE;
         std::string name_ = "ConnectionBase";
-        gsl::not_null<Control*> control_;
+        gsl::not_null<App*> control_;
         std::unique_ptr<udp::socket> socket_;
         udp::endpoint* endpoint_;
         SerializableMsgBuffer write_msg_buffer_;

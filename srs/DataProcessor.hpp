@@ -15,7 +15,7 @@
 namespace srs
 {
     class DataProcessor;
-    class Control;
+    class App;
 
     class DataMonitor
     {
@@ -44,7 +44,7 @@ namespace srs
     class DataProcessor
     {
       public:
-        explicit DataProcessor(Control* control);
+        explicit DataProcessor(App* control);
 
         // Need to be fast return
         void read_data_once(std::span<BufferElementType> read_data);
@@ -67,7 +67,7 @@ namespace srs
         DataPrintMode print_mode_ = DataPrintMode::print_speed;
         tbb::concurrent_bounded_queue<SerializableMsgBuffer> data_queue_;
         std::atomic<uint64_t> total_read_data_bytes_ = 0;
-        gsl::not_null<Control*> control_;
+        gsl::not_null<App*> control_;
         DataMonitor monitor_;
 
         // buffer variables

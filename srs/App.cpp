@@ -1,4 +1,4 @@
-#include "Control.hpp"
+#include "App.hpp"
 #include "DataProcessor.hpp"
 #include "spdlog/spdlog.h"
 #include <Connections.hpp>
@@ -7,16 +7,16 @@
 
 namespace srs
 {
-    Control::Control()
+    App::App()
         : io_work_guard_{ asio::make_work_guard(io_context_) }
     {
         data_processor_ = std::make_unique<DataProcessor>(this);
         start_work();
     }
 
-    Control::~Control() = default;
+    App::~App() = default;
 
-    void Control::start_work()
+    void App::start_work()
     {
         auto monitoring_action = [this]()
         {
@@ -36,7 +36,7 @@ namespace srs
         working_thread_ = std::jthread{ monitoring_action };
     }
 
-    void Control::exit()
+    void App::exit()
     {
         signal_set_.cancel();
         data_processor_->stop();
@@ -50,9 +50,9 @@ namespace srs
         io_work_guard_.reset();
     }
 
-    void Control::set_print_mode(DataPrintMode mode) { data_processor_->set_print_mode(mode); }
+    void App::set_print_mode(DataPrintMode mode) { data_processor_->set_print_mode(mode); }
 
-    void Control::set_remote_endpoint(std::string_view remote_ip, int port_number)
+    void App::set_remote_endpoint(std::string_view remote_ip, int port_number)
     {
         auto resolver = udp::resolver{ io_context_ };
         spdlog::debug("Set the remote socket with ip: {} and port: {}", remote_ip, port_number);
@@ -60,7 +60,7 @@ namespace srs
         remote_endpoint_ = *udp_endpoints.begin();
     }
 
-    void Control::switch_on()
+    void App::switch_on()
     {
         auto connection_info = ConnectionInfo{ this };
         connection_info.local_port_number = default_port1_number_;
@@ -69,7 +69,7 @@ namespace srs
         connection->acq_on();
     }
 
-    void Control::switch_off()
+    void App::switch_off()
     {
         auto connection_info = ConnectionInfo{ this };
         connection_info.local_port_number = default_port1_number_;
@@ -78,7 +78,7 @@ namespace srs
         connection->acq_off();
     }
 
-    void Control::read_data()
+    void App::read_data()
     {
         auto connection_info = ConnectionInfo{ this };
         connection_info.local_port_number = FEC_DAQ_RECEIVE_PORT;
@@ -86,7 +86,7 @@ namespace srs
         data_reader->start();
     }
 
-    void Control::run()
+    void App::run()
     {
         data_processor_->start();
         working_thread_.join();

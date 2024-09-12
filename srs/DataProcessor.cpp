@@ -7,7 +7,7 @@
 #include <fmt/ranges.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <srs/Control.hpp>
+#include <srs/App.hpp>
 
 namespace srs
 {
@@ -62,7 +62,7 @@ namespace srs
     void DataMonitor::start() { asio::co_spawn(*io_context_, print_cycle(), asio::detached); }
     void DataMonitor::stop() { clock_.cancel(); }
 
-    DataProcessor::DataProcessor(Control* control)
+    DataProcessor::DataProcessor(App* control)
         : control_{ control }
         , monitor_{ this, &control_->get_io_context() }
     {

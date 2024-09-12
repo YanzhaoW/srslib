@@ -4,7 +4,7 @@
 
 namespace srs
 {
-    class Control;
+    class App;
 
     using udp = asio::ip::udp;
 
@@ -22,11 +22,11 @@ namespace srs
 
     struct ConnectionInfo
     {
-        explicit ConnectionInfo(Control* control_ptr)
+        explicit ConnectionInfo(App* control_ptr)
             : control{ control_ptr }
         {
         }
-        Control* control = nullptr;
+        App* control = nullptr;
         int local_port_number = 0;
         udp::endpoint* endpoint = nullptr;
     };

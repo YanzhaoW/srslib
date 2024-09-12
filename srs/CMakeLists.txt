@@ -2,7 +2,7 @@ add_subdirectory(c_impl)
 
 add_library(srs_cpp SHARED)
 
-target_sources(srs_cpp PRIVATE Control.cpp utils/Connections.cpp DataProcessor.cpp DataStructs.cpp)
+target_sources(srs_cpp PRIVATE App.cpp utils/Connections.cpp DataProcessor.cpp DataStructs.cpp)
 
 target_sources(
     srs_cpp
@@ -14,7 +14,7 @@ target_sources(
             utils/Serializer.hpp
             devices/Fec.hpp
             devices/VmmDevice.hpp
-            Control.hpp
+            App.hpp
             CommonDefitions.hpp)
 
 target_include_directories(

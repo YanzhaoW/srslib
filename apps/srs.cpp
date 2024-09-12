@@ -1,6 +1,6 @@
 #include "CLI/CLI.hpp"
 #include "spdlog/spdlog.h"
-#include <srs/Control.hpp>
+#include <srs/App.hpp>
 
 auto main(int argc, char** argv) -> int
 {
@@ -36,7 +36,7 @@ auto main(int argc, char** argv) -> int
     try
     {
         spdlog::info("Welcome to SRS program");
-        auto control = srs::Control{};
+        auto control = srs::App{};
 
         control.set_remote_endpoint("10.0.0.2", 6600);
         control.set_print_mode(print_mode);

@@ -35,16 +35,16 @@ namespace srs
         }
     };
 
-    class Control
+    class App
     {
       public:
-        Control();
+        App();
 
-        Control(const Control&) = delete;
-        Control(Control&&) = delete;
-        Control& operator=(const Control&) = delete;
-        Control& operator=(Control&&) = delete;
-        ~Control();
+        App(const App&) = delete;
+        App(App&&) = delete;
+        App& operator=(const App&) = delete;
+        App& operator=(App&&) = delete;
+        ~App();
 
         void configure_fec() {}
         void switch_on();
