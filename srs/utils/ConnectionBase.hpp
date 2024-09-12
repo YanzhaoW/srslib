@@ -1,13 +1,13 @@
 #pragma once
 
+#include "CommonDefitions.hpp"
 #include "ConnectionTypeDef.hpp"
 #include "gsl/gsl-lite.hpp"
 #include <asio/experimental/awaitable_operators.hpp>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
-#include <srs/utils/Serializer.hpp>
 #include <srs/App.hpp>
-#include <srs/CommonDefitions.hpp>
+#include <srs/utils/Serializer.hpp>
 
 namespace srs
 {

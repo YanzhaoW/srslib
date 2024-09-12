@@ -1,5 +1,6 @@
 #pragma once
 
+#include "CommonDefitions.hpp"
 #include "DataStructs.hpp"
 #include <asio/awaitable.hpp>
 #include <asio/steady_timer.hpp>
@@ -8,7 +9,6 @@
 #include <gsl/gsl-lite.hpp>
 #include <span>
 #include <spdlog/logger.h>
-#include <srs/CommonDefitions.hpp>
 #include <srs/utils/Serializer.hpp>
 #include <tbb/concurrent_queue.h>
 

@@ -5,8 +5,8 @@
 #include <asio/thread_pool.hpp>
 #include <atomic>
 #include <spdlog/spdlog.h>
-#include <srs/CommonDefitions.hpp>
 #include <srs/devices/Fec.hpp>
+#include <srs/utils/CommonDefitions.hpp>
 #include <thread>
 
 namespace srs
