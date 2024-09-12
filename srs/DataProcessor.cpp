@@ -137,8 +137,6 @@ namespace srs
         write_data();
 
         clear_data_buffer();
-        // spdlog::trace("frame data size: {}", rev_data.data.size());
-        // spdlog::trace("frame 1st data : {}", rev_data.data.front().to_string());
     }
 
     void DataProcessor::clear_data_buffer()
@@ -170,7 +168,7 @@ namespace srs
     {
         if (print_mode_ == print_header or print_mode_ == print_all)
         {
-            spdlog::info("frame header: {}", header_data_);
+            spdlog::info("frame header: [ {} ]", header_data_);
         }
 
         if (print_mode_ == print_all)
