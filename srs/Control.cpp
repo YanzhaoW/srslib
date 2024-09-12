@@ -20,10 +20,8 @@ namespace srs
     {
         auto monitoring_action = [this]()
         {
-            // auto work = asio::make_work_guard(io_context_);
-            // asio::signal_set signal(io_context_, SIGINT, SIGTERM);
             signal_set_.async_wait(
-                [this](const asio::error_code& error, auto sig_num)
+                [this](const asio::error_code& error, auto)
                 {
                     if (error == asio::error::operation_aborted)
                     {
@@ -51,6 +49,8 @@ namespace srs
         spdlog::info("SRS system is turned off");
         io_work_guard_.reset();
     }
+
+    void Control::set_print_mode(DataPrintMode mode) { data_processor_->set_print_mode(mode); }
 
     void Control::set_remote_endpoint(std::string_view remote_ip, int port_number)
     {

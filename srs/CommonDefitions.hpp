@@ -1,12 +1,16 @@
 #pragma once
 
+#include <asio/thread_pool.hpp>
+#include <bitset>
 #include <chrono>
 #include <cstdint>
 #include <vector>
-#include <asio/thread_pool.hpp>
 
 namespace srs
 {
+    // General
+    constexpr auto BYTE_BIT_LENGTH = 8;
+
     // Connections:
     constexpr auto WRITE_COMMAND_BITS = uint8_t{ 0xaa };
     constexpr auto DEFAULT_TYPE_BITS = uint8_t{ 0xaa };
@@ -38,6 +42,49 @@ namespace srs
 
     // Data processor:
     constexpr auto DEFAULT_DISPLAY_PERIOD = std::chrono::milliseconds{ 200 };
+    constexpr auto FEC_ID_BIT_LENGTH = 8;
+    constexpr auto HIT_DATA_BIT_LENGTH = 48;
+    constexpr auto VMM_TAG_BIT_LENGTH = 3;
+    constexpr auto SRS_TIMESTAMP_HIGH_BIT_LENGTH = 32;
+    constexpr auto SRS_TIMESTAMP_LOW_BIT_LENGTH = 10;
+    constexpr auto FLAG_BIT_POSITION = 15; // zero based
+
+    enum class DataPrintMode
+    {
+        print_speed,
+        print_header,
+        print_raw,
+        print_all
+    };
+
 
     using io_context_type = asio::thread_pool;
+
+    // subbits from a half open range [min, max)
+    template <std::size_t bit_size, std::size_t max, std::size_t min = 0>
+    inline constexpr auto subset(std::bitset<bit_size> bits) -> std::bitset<max - min>
+    {
+        constexpr auto max_size = 64;
+        static_assert(max > min);
+        static_assert(max_size >= (max - min));
+        constexpr auto ignore_high = bit_size - max;
+
+        auto new_bits = (bits << ignore_high) >> (ignore_high + min);
+        return std::bitset<max - min>{ new_bits.to_ullong() };
+    }
+
+    template <std::size_t high_size, std::size_t low_size>
+    inline constexpr auto merge_bits(std::bitset<high_size> high_bits,
+                                     std::bitset<low_size> low_bits) -> std::bitset<high_size + low_size>
+    {
+        using NewBit = std::bitset<high_size + low_size>;
+        constexpr auto max_size = 64;
+        static_assert(max_size >= high_size + low_size);
+
+        auto high_bits_part = NewBit(high_bits.to_ullong());
+        auto low_bits_part = NewBit(low_bits.to_ullong());
+        auto new_bits = (high_bits_part << low_size) | low_bits_part;
+        return std::bitset<high_size + low_size>(new_bits.to_ullong());
+    }
+
 } // namespace srs

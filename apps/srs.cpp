@@ -13,10 +13,19 @@ auto main(int argc, char** argv) -> int
         { "off", spdlog::level::off }
     };
 
+    using enum srs::DataPrintMode;
+    auto print_mode_map = std::map<std::string, srs::DataPrintMode>{
+        { "speed", print_speed }, { "header", print_header }, { "raw", print_raw }, { "all", print_all }
+    };
+
     auto spdlog_level = spdlog::level::info;
+    auto print_mode = print_speed;
 
     cli_args.add_option("-v, --verbose-level", spdlog_level, "set log level")
         ->transform(CLI::CheckedTransformer(spd_log_map, CLI::ignore_case))
+        ->capture_default_str();
+    cli_args.add_option("-p, --print-mode", print_mode, "set print mode")
+        ->transform(CLI::CheckedTransformer(print_mode_map, CLI::ignore_case))
         ->capture_default_str();
 
     CLI11_PARSE(cli_args, argc, argv);
@@ -30,6 +39,7 @@ auto main(int argc, char** argv) -> int
         auto control = srs::Control{};
 
         control.set_remote_endpoint("10.0.0.2", 6600);
+        control.set_print_mode(print_mode);
 
         control.read_data();
         control.switch_on();

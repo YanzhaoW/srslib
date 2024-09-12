@@ -1,8 +1,10 @@
 #include "DataProcessor.hpp"
+#include "DataStructs.hpp"
 #include <asio/co_spawn.hpp>
 #include <asio/detached.hpp>
 #include <fmt/chrono.h>
 #include <fmt/color.h>
+#include <fmt/ranges.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <srs/Control.hpp>
@@ -69,7 +71,10 @@ namespace srs
     void DataProcessor::start()
     {
         is_stopped.store(false);
-        monitor_.start();
+        if (print_mode_ == print_speed)
+        {
+            monitor_.start();
+        }
         asio::post(control_->get_io_context(), [this]() { analysis_loop(); });
     }
 
@@ -104,17 +109,80 @@ namespace srs
             while (not is_stopped)
             {
                 data_queue_.pop(input_data_buffer);
+                analyse_one_frame(std::move(input_data_buffer));
             }
         }
         catch (oneapi::tbb::user_abort& ex)
         {
-            spdlog::info("Data processing: {}", ex.what());
+            spdlog::debug("Data processing: {}", ex.what());
         }
         catch (std::exception& ex)
         {
             // TODO: call stop of the control
             spdlog::critical(ex.what());
             control_->exit();
+        }
+    }
+
+    void DataProcessor::analyse_one_frame(SerializableMsgBuffer a_frame)
+    {
+        a_frame.deserialize(receive_raw_data_.header, receive_raw_data_.data);
+        header_data_ = receive_raw_data_.header;
+        fill_raw_data(receive_raw_data_.data);
+        if (print_mode_ == print_raw)
+        {
+            spdlog::info("data: {:x}", fmt::join(a_frame.data(), ""));
+        }
+        print_data();
+        write_data();
+
+        clear_data_buffer();
+        // spdlog::trace("frame data size: {}", rev_data.data.size());
+        // spdlog::trace("frame 1st data : {}", rev_data.data.front().to_string());
+    }
+
+    void DataProcessor::clear_data_buffer()
+    {
+        receive_raw_data_.header = ReceiveDataHeader{};
+        receive_raw_data_.data.clear();
+        marker_data_.clear();
+        hit_data_.clear();
+    }
+
+    bool DataProcessor::check_is_hit(const DataElementType& element) { return element.test(FLAG_BIT_POSITION); }
+
+    void DataProcessor::fill_raw_data(const ReceiveDataSquence& data_seq)
+    {
+        for (const auto& element : data_seq)
+        {
+            if (auto is_hit = check_is_hit(element); is_hit)
+            {
+                hit_data_.emplace_back(element);
+            }
+            else
+            {
+                marker_data_.emplace_back(element);
+            }
+        }
+    }
+
+    void DataProcessor::print_data()
+    {
+        if (print_mode_ == print_header or print_mode_ == print_all)
+        {
+            spdlog::info("frame header: {}", header_data_);
+        }
+
+        if (print_mode_ == print_all)
+        {
+            for (const auto& hit_data : hit_data_)
+            {
+                spdlog::info("Hit data: [ {} ]", hit_data);
+            }
+            for (const auto& marker_data : marker_data_)
+            {
+                spdlog::info("Marker data: [ {} ]", marker_data);
+            }
         }
     }
 } // namespace srs

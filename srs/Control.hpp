@@ -63,6 +63,7 @@ namespace srs
         void set_remote_endpoint(std::string_view remote_ip, int port_number);
         void set_status_acq_on(bool val = true) { status_.is_acq_on.store(val); }
         void set_status_is_reading(bool val = true) { status_.is_reading.store(val); }
+        void set_print_mode(DataPrintMode mode);
 
         // getters:
         [[nodiscard]] auto get_channel_address() const -> uint16_t { return channel_address_; }
