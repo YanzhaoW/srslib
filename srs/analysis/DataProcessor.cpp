@@ -128,7 +128,6 @@ namespace srs
     void DataProcessor::analyse_one_frame(SerializableMsgBuffer a_frame)
     {
         a_frame.deserialize(receive_raw_data_.header, receive_raw_data_.data);
-        header_data_ = receive_raw_data_.header;
         fill_raw_data(receive_raw_data_.data);
         if (print_mode_ == print_raw)
         {
@@ -170,7 +169,8 @@ namespace srs
     {
         if (print_mode_ == print_header or print_mode_ == print_raw or print_mode_ == print_all)
         {
-            spdlog::info("frame header: [ {} ]. Data size: {}", header_data_, receive_raw_data_.data.size());
+            spdlog::info(
+                "frame header: [ {} ]. Data size: {}", receive_raw_data_.header, receive_raw_data_.data.size());
         }
 
         if (print_mode_ == print_all)

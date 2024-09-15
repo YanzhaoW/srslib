@@ -10,7 +10,7 @@ namespace srs
     class Starter : public ConnectionBase<>
     {
       public:
-        explicit Starter(ConnectionInfo info)
+        explicit Starter(const ConnectionInfo& info)
             : ConnectionBase(info, "Starter")
         {
         }
@@ -26,18 +26,19 @@ namespace srs
     class Stopper : public ConnectionBase<>
     {
       public:
-        explicit Stopper(ConnectionInfo info)
+        explicit Stopper(const ConnectionInfo& info)
             : ConnectionBase(info, "Stopper")
         {
         }
 
         void acq_off();
+        void end_of_read(){}
     };
 
     class DataReader : public ConnectionBase<LARGE_READ_MSG_BUFFER_SIZE>
     {
       public:
-        DataReader(ConnectionInfo info, DataProcessor* processor)
+        DataReader(const ConnectionInfo& info, DataProcessor* processor)
             : data_processor_{ processor }
             , ConnectionBase(info, "DataReader")
         {

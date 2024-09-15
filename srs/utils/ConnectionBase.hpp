@@ -17,7 +17,7 @@ namespace srs
     class ConnectionBase : public std::enable_shared_from_this<ConnectionBase<buffer_size>>
     {
       public:
-        explicit ConnectionBase(ConnectionInfo info, std::string name)
+        explicit ConnectionBase(const ConnectionInfo& info, std::string name)
             : local_port_number_{ info.local_port_number }
             , name_{ std::move(name) }
             , control_{ info.control }
@@ -29,7 +29,6 @@ namespace srs
         void listen(this auto&& self, bool is_continuous = false);
         void communicate(this auto&& self, const std::vector<CommunicateEntryType>& data, uint16_t address);
         void close_socket();
-        void end_of_read() { spdlog::trace("calling base class end_of_read from {:?}!", name_); };
         void read_data_handle(std::span<BufferElementType> read_data) {}
 
         [[nodiscard]] auto get_read_msg_buffer() const -> const auto& { return read_msg_buffer_; }

@@ -32,6 +32,7 @@ namespace srs
 
     // port numbers:
     constexpr auto FEC_DAQ_RECEIVE_PORT = 6006;
+    static constexpr int FEC_CONTROL_LOCAL_PORT = 6007;
 
     using BufferElementType = uint8_t;
     using WriteBufferType = std::vector<BufferElementType>;

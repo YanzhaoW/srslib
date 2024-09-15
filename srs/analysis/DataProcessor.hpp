@@ -72,7 +72,6 @@ namespace srs
 
         // buffer variables
         ReceiveData receive_raw_data_{};
-        ReceiveDataHeader header_data_;
         std::vector<MarkerData> marker_data_;
         std::vector<HitData> hit_data_;
 

@@ -66,7 +66,7 @@ namespace srs
     void App::switch_on()
     {
         auto connection_info = ConnectionInfo{ this };
-        connection_info.local_port_number = default_port1_number_;
+        connection_info.local_port_number = FEC_CONTROL_LOCAL_PORT;
         connection_info.endpoint = &remote_endpoint_;
         auto connection = std::make_shared<Starter>(connection_info);
         connection->acq_on();
@@ -75,7 +75,7 @@ namespace srs
     void App::switch_off()
     {
         auto connection_info = ConnectionInfo{ this };
-        connection_info.local_port_number = default_port1_number_;
+        connection_info.local_port_number = FEC_CONTROL_LOCAL_PORT;
         connection_info.endpoint = &remote_endpoint_;
         auto connection = std::make_shared<Stopper>(connection_info);
         connection->acq_off();

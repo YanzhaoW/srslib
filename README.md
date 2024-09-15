@@ -1,28 +1,29 @@
-# srslib - A library and command line client for SRS FEC & VMM3
+# srslib - A data IO program for SRS FEC & VMM3
+
+[![Codacy Badge](https://app.codacy.com/project/badge/Grade/f3a70c8e8a9d4909a1953142fe5ff1e9)](https://app.codacy.com/gh/YanzhaoW/srslib/dashboard?utm_source=gh&utm_medium=referral&utm_content=&utm_campaign=Badge_grade)
 
 ## Introduction
 
-### Why?
-
-- dependency free
-- simple, pure C (mostly C89)
-- maintainable, 2k lines of code
-- does not assume any specific (linux) environment
-- strict separation between library and application
+srslib is an asynchronous data IO program for SRS system.
 
 ### Included
 
-- control/monitoring for SRS FEC & VMM3a hybrids
-- readout of data
-
-### Not included:
-
-- calibration routines
-- graphical user interface
-- sophisticated data transport
-
+- Control/monitoring for SRS FEC & VMM3a hybrids
+- Readout of data
+- Data deserialization from SRS system
 
 ## Building
+
+### Prerequisite
+
+- gcc >= 14.2
+- conan >= 2.2. To install conan
+    ```bash
+    python -m pip install conan
+    ```
+- cmake >= 3.26
+
+### Installation
 
 ```
 git clone -b dev https://github.com/YanzhaoW/srslib.git
@@ -38,63 +39,37 @@ The executable programs are compiled in the build directory:
 ./build/apps/
 ```
 
-## srscli - The control program
+## srs_control - The control program
 
-### Configure FEC + attached VMMs
+To run the program
 
-```
-./srscli
-```
-
-> **Note:**
-> `srscli` assumes that the FEC has an IP address of 10.0.0.2.
-
-### Start acquisition
-
-```
-./srscli --acq-on
+```bash
+./srs_control [-p DATA_PRINT_OPTION] [-v LOG_LEVEL] [-h]
 ```
 
-### Stop acquisition
+### Run-time options
 
-```
-./srscli --acq-off
-```
-
-### Common options
-
-```
--v/--verbose: Increase verbosity, can be given multiple times.
--h/--help:    Show help.
-```
+- `-h` or `--help`: print the help message
+- `-v` or `--verbose-level`: set the verbose level. Available options: "critical", "error", "warn", "info" (default), "debug", "trace", "off".
+- `-p` or `--print-mode`: set the data printing mode. Available options:
+    - speed (default): print the reading rate of received data
+    - header: print the header message of received data
+    - raw: print the received raw bytes
+    - all: print all data, including header, hit and marker data, but no raw data.
 
 ### Custom configuration
 
-There is no support (yet) for reading a custom configuration from a config file. Instead, the user needs to modify the `fec_custom_config()` function in `apps/srscli/main.c`. Using configuration files is most probably the next feature on the roadmap.
-
-
-## srsread - Reading data from a FEC
-
-`srsread` is a simple readout loop for SRS/FEC.
-Use the `-o/--output` option to store data to an output file.
-
-```
-./srsread -o /tmp/srs_fec_vmm3.dat
-```
+To be added ...
 
 Data is stored **as is** from the FEC in binary format. No modifications are done.
 
 
-## License
+## Acknowledgments
 
-This project is licensed under the MIT License - see the [LICENSE.md](LICENSE.md) file for details.
+- A lot of information was used from the existing codebase of the VMM slow control software [vmmsc](https://gitlab.cern.ch/rd51-slow-control/vmmsc.git).
 
+### TODO list
 
-## Acknowledgements
-
-* A lot of information was used from the existing codebase of the VMM slow control software [vmmsc](https://gitlab.cern.ch/rd51-slow-control/vmmsc.git).
-
-
-## Authors:
-
-* **Bastian Löher** - *Initial work*
+- calibration routines
+- graphical user interface
+- ROOT output file

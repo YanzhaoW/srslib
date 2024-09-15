@@ -68,18 +68,18 @@ namespace srs
 
           private:
             std::unique_ptr<UDPSocket> socket;
-            uint32_t packet_counter;
-            uint8_t channel_map;
-            // uint8_t n_hybrids;
-            uint8_t hybrid_index;
-            uint8_t vmm_index;
-            uint8_t adc_channel;
-            uint8_t id; /* made from lowest 8 bits of IP address */
+            uint32_t packet_counter{};
+            uint8_t channel_map{};
+            // uint8_t n_hybrids{};
+            uint8_t hybrid_index{};
+            uint8_t vmm_index{};
+            uint8_t adc_channel{};
+            uint8_t id{}; /* made from lowest 8 bits of IP address */
             std::vector<uint8_t> hybrid_index_map;
-            State state;
+            State state{};
             std::vector<HybridDevice> hybrid;
-            Config config;
-            I2CDevice i2c;
+            Config config{};
+            I2CDevice i2c{};
         };
     }; // namespace fec
 } // namespace srs
