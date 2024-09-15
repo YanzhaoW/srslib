@@ -1,6 +1,7 @@
-#include "App.hpp"
+#include "Application.hpp"
 #include "DataProcessor.hpp"
 #include "spdlog/spdlog.h"
+#include <CLI/CLI.hpp>
 #include <Connections.hpp>
 #include <fmt/ranges.h>
 #include <string_view>
@@ -10,6 +11,8 @@ namespace srs
     App::App()
         : io_work_guard_{ asio::make_work_guard(io_context_) }
     {
+        spdlog::set_pattern("[%H:%M:%S] [%^%=7l%$] [thread %t] %v");
+        spdlog::info("Welcome to SRS Application");
         data_processor_ = std::make_unique<DataProcessor>(this);
         start_work();
     }

@@ -6,7 +6,7 @@
 #include <asio/experimental/awaitable_operators.hpp>
 #include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
-#include <srs/App.hpp>
+#include <srs/Application.hpp>
 #include <srs/utils/Serializer.hpp>
 
 namespace srs
@@ -76,7 +76,7 @@ namespace srs
                 asio::buffer(connection->read_msg_buffer_), asio::use_awaitable);
             auto read_msg = std::span{ connection->read_msg_buffer_.data(), receive_data_size };
             connection->read_data_handle(read_msg);
-            // spdlog::trace("received size: {}, received data: {:x}", read_msg.size(), fmt::join(read_msg, " "));
+            // spdlog::info("Connection {}: received {} bytes data", connection->get_name(), read_msg.size());
 
             connection->reset_read_msg_buffer();
             if (not is_continuous or connection->get_control().get_status().is_acq_off.load())

@@ -7,7 +7,8 @@
 #include <fmt/ranges.h>
 #include <spdlog/pattern_formatter.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
-#include <srs/App.hpp>
+#include <spdlog/spdlog.h>
+#include <srs/Application.hpp>
 
 namespace srs
 {
@@ -153,6 +154,7 @@ namespace srs
     {
         for (const auto& element : data_seq)
         {
+            // spdlog::info("raw data: {:x}", element.to_ullong());
             if (auto is_hit = check_is_hit(element); is_hit)
             {
                 hit_data_.emplace_back(element);
@@ -166,9 +168,9 @@ namespace srs
 
     void DataProcessor::print_data()
     {
-        if (print_mode_ == print_header or print_mode_ == print_all)
+        if (print_mode_ == print_header or print_mode_ == print_raw or print_mode_ == print_all)
         {
-            spdlog::info("frame header: [ {} ]", header_data_);
+            spdlog::info("frame header: [ {} ]. Data size: {}", header_data_, receive_raw_data_.data.size());
         }
 
         if (print_mode_ == print_all)

@@ -2,7 +2,7 @@ add_subdirectory(c_impl)
 
 add_library(srs_cpp SHARED)
 
-target_sources(srs_cpp PRIVATE App.cpp utils/Connections.cpp analysis/DataProcessor.cpp
+target_sources(srs_cpp PRIVATE Application.cpp utils/Connections.cpp analysis/DataProcessor.cpp
                                analysis/DataStructs.cpp)
 
 target_sources(
@@ -16,7 +16,7 @@ target_sources(
             utils/CommonDefitions.hpp
             devices/Fec.hpp
             devices/VmmDevice.hpp
-            App.hpp)
+            Application.hpp)
 
 target_include_directories(
     srs_cpp
@@ -27,5 +27,9 @@ target_include_directories(
 target_link_libraries(
     srs_cpp
     PUBLIC asio::asio gsl::gsl-lite
-    PRIVATE fmt::fmt zpp_bits::zpp_bits spdlog::spdlog onetbb::onetbb
+    PRIVATE fmt::fmt
+            zpp_bits::zpp_bits
+            spdlog::spdlog
+            onetbb::onetbb
+            CLI11::CLI11
     INTERFACE srs_c)

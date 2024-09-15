@@ -64,6 +64,7 @@ namespace srs
         vmm_id = static_cast<decltype(vmm_id)>(hit_data_compact.vmm_id);
         adc = static_cast<decltype(adc)>(hit_data_compact.adc);
         bc_id = static_cast<decltype(bc_id)>(hit_data_compact.bc_id);
+        bc_id = gray_to_binary(bc_id);
     }
 
 } // namespace srs

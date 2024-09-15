@@ -30,14 +30,14 @@ namespace srs
             return asio::buffer(data_);
         }
 
-        template <typename T>
-        auto deserialize(auto&& header, std::vector<T>& body)
+        template <std::size_t T>
+        auto deserialize(auto&& header, std::vector<std::bitset<T>>& body)
         {
             auto deserialize_to = zpp::bits::in{ data_, zpp::bits::endian::network{}, zpp::bits::no_size{} };
 
             auto read_bytes = data_.size() * sizeof(BufferElementType);
             constexpr auto header_bytes = sizeof(header);
-            constexpr auto element_bytes = sizeof(T);
+            constexpr auto element_bytes = T / BYTE_BIT_LENGTH;
             auto vector_size = (read_bytes - header_bytes) / element_bytes;
             if (vector_size < 0)
             {
@@ -47,6 +47,13 @@ namespace srs
             rng::fill(body, 0);
 
             deserialize_to(header, body).or_throw();
+
+            // reverse byte order of each element.
+            // TODO: This is current due to a bug from zpp_bits. The reversion is not needed if it's fixed.
+            for (auto& element : body)
+            {
+                element = byte_swap(element);
+            }
         }
 
         [[nodiscard]] auto data() const -> const auto& { return data_; }

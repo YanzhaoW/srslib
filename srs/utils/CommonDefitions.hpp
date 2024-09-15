@@ -57,7 +57,6 @@ namespace srs
         print_all
     };
 
-
     using io_context_type = asio::thread_pool;
 
     // subbits from a half open range [min, max)
@@ -87,4 +86,24 @@ namespace srs
         return std::bitset<high_size + low_size>(new_bits.to_ullong());
     }
 
+    template <std::size_t bit_size>
+    inline constexpr auto byte_swap(std::bitset<bit_size> bits)
+    {
+        auto val = bits.to_ullong();
+        val = val << (sizeof(uint64_t) * BYTE_BIT_LENGTH - bit_size);
+        val = std::byteswap(val);
+        return std::bitset<bit_size>(val);
+    }
+
+    template <typename T>
+    constexpr auto gray_to_binary(T gray_val)
+    {
+        auto bin_val = T{ gray_val };
+        while (gray_val > 0)
+        {
+            gray_val >>= 1;
+            bin_val ^= gray_val;
+        }
+        return bin_val;
+    }
 } // namespace srs

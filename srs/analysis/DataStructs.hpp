@@ -1,11 +1,11 @@
 #pragma once
 
+#include "CommonDefitions.hpp"
 #include <array>
 #include <bitset>
 #include <cstdint>
 #include <fmt/format.h>
 #include <fmt/ranges.h>
-#include "CommonDefitions.hpp"
 #include <vector>
 
 namespace srs
@@ -14,7 +14,7 @@ namespace srs
     {
         uint32_t frame_counter{};
         std::array<char, VMM_TAG_BIT_LENGTH> vmm_tag;
-        std::bitset<FEC_ID_BIT_LENGTH> fec_id;
+        uint8_t fec_id;
         uint32_t udp_timestamp{};
         uint32_t overflow{};
     };
@@ -63,7 +63,7 @@ class fmt::formatter<srs::ReceiveDataHeader>
                          "frame counter: {}, vmm tag: {}, fec id: {:08b}, udp timestamp: {}, overflow: {}",
                          header.frame_counter,
                          fmt::join(header.vmm_tag, ""),
-                         header.fec_id.to_ulong(),
+                         header.fec_id,
                          header.udp_timestamp,
                          header.overflow);
     }
@@ -94,9 +94,9 @@ class fmt::formatter<srs::HitData>
                          hit.is_over_threshold,
                          hit.channel_num,
                          hit.tdc,
+                         hit.adc,
                          hit.offset,
                          hit.vmm_id,
-                         hit.adc,
                          hit.bc_id);
     }
 };
