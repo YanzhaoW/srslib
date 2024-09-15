@@ -61,14 +61,11 @@ To run the program
 
 To be added ...
 
-Data is stored **as is** from the FEC in binary format. No modifications are done.
-
-
 ## Acknowledgments
 
 - A lot of information was used from the existing codebase of the VMM slow control software [vmmsc](https://gitlab.cern.ch/rd51-slow-control/vmmsc.git).
 
-### TODO list
+## TODO list
 
 - calibration routines
 - graphical user interface
