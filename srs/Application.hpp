@@ -49,10 +49,9 @@ namespace srs
 
       private:
         using udp = asio::ip::udp;
-        static constexpr int default_port1_number_ = 6007;
 
         Status status_;
-        uint16_t channel_address_ = 0xff;
+        uint16_t channel_address_ = DEFAULT_CHANNEL_ADDRE;
         fec::Config fec_config_;
         std::unique_ptr<DataProcessor> data_processor_;
         io_context_type io_context_{ 4 };

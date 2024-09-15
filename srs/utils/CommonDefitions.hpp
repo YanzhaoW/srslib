@@ -14,6 +14,7 @@ namespace srs
     // Connections:
     constexpr auto WRITE_COMMAND_BITS = uint8_t{ 0xaa };
     constexpr auto DEFAULT_TYPE_BITS = uint8_t{ 0xaa };
+    constexpr auto DEFAULT_CHANNEL_ADDRE = uint16_t{ 0xff };
     constexpr auto COMMAND_LENGTH_BITS = uint16_t{ 0xffff };
     constexpr auto ZERO_UINT16_PADDING = uint16_t{};
     constexpr auto SMALL_READ_MSG_BUFFER_SIZE = 100;
@@ -61,7 +62,7 @@ namespace srs
 
     // subbits from a half open range [min, max)
     template <std::size_t bit_size, std::size_t max, std::size_t min = 0>
-    inline constexpr auto subset(std::bitset<bit_size> bits) -> std::bitset<max - min>
+    inline constexpr auto subset(const std::bitset<bit_size>& bits) -> std::bitset<max - min>
     {
         constexpr auto max_size = 64;
         static_assert(max > min);
@@ -73,8 +74,8 @@ namespace srs
     }
 
     template <std::size_t high_size, std::size_t low_size>
-    inline constexpr auto merge_bits(std::bitset<high_size> high_bits,
-                                     std::bitset<low_size> low_bits) -> std::bitset<high_size + low_size>
+    inline constexpr auto merge_bits(const std::bitset<high_size>& high_bits,
+                                     const std::bitset<low_size>& low_bits) -> std::bitset<high_size + low_size>
     {
         using NewBit = std::bitset<high_size + low_size>;
         constexpr auto max_size = 64;
@@ -87,7 +88,7 @@ namespace srs
     }
 
     template <std::size_t bit_size>
-    inline constexpr auto byte_swap(std::bitset<bit_size> bits)
+    inline constexpr auto byte_swap(const std::bitset<bit_size>& bits)
     {
         auto val = bits.to_ullong();
         val = val << (sizeof(uint64_t) * BYTE_BIT_LENGTH - bit_size);
