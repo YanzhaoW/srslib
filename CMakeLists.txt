@@ -17,9 +17,4 @@ find_package(CLI11 REQUIRED)
 find_package(TBB REQUIRED)
 
 add_subdirectory(srs)
-
-add_library(srs INTERFACE)
-target_link_libraries(srs INTERFACE srs_cpp srs_c)
-target_include_directories(srs INTERFACE ${CMAKE_CURRENT_SOURCE_DIR})
-
 add_subdirectory(apps)

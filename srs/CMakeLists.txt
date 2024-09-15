@@ -1,12 +1,10 @@
-add_subdirectory(c_impl)
+add_library(srs SHARED)
 
-add_library(srs_cpp SHARED)
-
-target_sources(srs_cpp PRIVATE Application.cpp utils/Connections.cpp analysis/DataProcessor.cpp
+target_sources(srs PRIVATE Application.cpp utils/Connections.cpp analysis/DataProcessor.cpp
                                analysis/DataStructs.cpp)
 
 target_sources(
-    srs_cpp
+    srs
     PRIVATE FILE_SET
             HEADERS
             BASE_DIRS
@@ -19,17 +17,16 @@ target_sources(
             Application.hpp)
 
 target_include_directories(
-    srs_cpp
+    srs
     PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/devices ${CMAKE_CURRENT_SOURCE_DIR}/utils
             ${CMAKE_CURRENT_SOURCE_DIR}/analysis
     PUBLIC ${CMAKE_SOURCE_DIR})
 
 target_link_libraries(
-    srs_cpp
+    srs
     PUBLIC asio::asio gsl::gsl-lite
     PRIVATE fmt::fmt
             zpp_bits::zpp_bits
             spdlog::spdlog
             onetbb::onetbb
-            CLI11::CLI11
-    INTERFACE srs_c)
+            CLI11::CLI11)
